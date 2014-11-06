@@ -28,12 +28,12 @@ type DialOpt struct {
 // than the structure represents a transport connection which has
 // been kept open for reuse.
 type SOSIConn struct {
-	Reused       bool          // Is this a connection kept for reuse?
-	MaxTSDUSizeOut uint16      // max TSDU size from initiator to responder
-	MaxTSDUSizeIn  uint16      // max TSDU size from responder to initiator
-	laddr, raddr SOSIAddr      // local and remote address
-	vn byte                    // selected version number
-	tosiConn     tosi.TOSIConn // TOSI connection
+	Reused         bool          // Is this a connection kept for reuse?
+	MaxTSDUSizeOut uint16        // max TSDU size from initiator to responder
+	MaxTSDUSizeIn  uint16        // max TSDU size from responder to initiator
+	laddr, raddr   SOSIAddr      // local and remote address
+	vn             byte          // selected version number
+	tosiConn       tosi.TOSIConn // TOSI connection
 }
 
 // SOSIAddr represents the address of a SOSI end point.
@@ -136,7 +136,7 @@ func dial(t *tosi.TOSIConn, loc, rem *SOSIAddr, cv cnVars) (*SOSIConn, error) {
 		err = errors.New("Connection request refused")
 		if !validateRF(tsdu, 0) {
 			t.Close()
-			return nil, err 
+			return nil, err
 		}
 		v := decodeRF(tsdu)
 		if v.tdisc == 0 {
@@ -150,7 +150,7 @@ func dial(t *tosi.TOSIConn, loc, rem *SOSIAddr, cv cnVars) (*SOSIConn, error) {
 			return reused, err
 		} else {
 			t.Close()
-			return nil, err 
+			return nil, err
 		}
 	}
 	if cv.dataOverflow {
@@ -252,12 +252,14 @@ func (c *SOSIConn) LocalAddr() net.Addr {
 // Read implements the net.Conn Read method.
 // TODO: implement this
 func (c *SOSIConn) Read(b []byte) (n int, err error) {
-	ok := readGT()
-	if ok {
-		readDT()
+	// try to read a GT+DT
+	tsdu, _, err := c.tosiConn.ReadTSDU()
+	if err != nil {
+		return 0, err
 	}
-	n, err = c.tosiConn.Read(b)
-	return
+	dt := getDT(tsdu)
+	copy(b, dt)
+	return len(dt), nil
 }
 
 // RemoteAddr returns the remote network address.
@@ -283,7 +285,7 @@ func (c *SOSIConn) SetWriteDeadline(t time.Time) error {
 // Write implements the net.Conn Write method.
 // TODO: implement this
 func (c *SOSIConn) Write(b []byte) (n int, err error) {
-	return c.tosiConn.Write(append(gt(0,0,nil), dt(3, b)...))
+	return c.tosiConn.Write(append(gt(0, 0, nil), dt(3, b)...))
 }
 
 // ListenSOSI announces on the SOSI address loc and returns a SOSI listener.
@@ -315,7 +317,7 @@ func (l *SOSIListener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 	if isCN(tsdu) {
-		sosi, err := cnReply(*l.addr, tsdu, *tconn) 
+		sosi, err := cnReply(*l.addr, tsdu, *tconn)
 		return &sosi, err
 	}
 	tconn.Close()

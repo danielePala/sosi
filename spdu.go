@@ -16,7 +16,7 @@ const (
 	cnDOLen       = 1
 	cnEUDCode     = 0xc2 // Extended User Data PGI code
 	// AC-related defs
-	acID     = 0x0e // ID of an AC SPDU
+	acID = 0x0e // ID of an AC SPDU
 	// OA-related defs
 	oaID = 0x10 // ID of an OA SPDU
 	// RF-related defs
@@ -26,11 +26,11 @@ const (
 	keepTConn    = 0x00 // Transport connection is kept
 	releaseTConn = 0x01 // Transport connection is released
 	// DT-related defs
-	dtID         = 0x01 // ID of a DT SPDU
+	dtID = 0x01 // ID of a DT SPDU
 	// GT-related defs
-	gtID         = 0x01 // ID of a GT SPDU
+	gtID = 0x01 // ID of a GT SPDU
 	// PT-related defs
-	ptID         = 0x02 // ID of a PT SPDU
+	ptID = 0x02 // ID of a PT SPDU
 	// common defs for various SPDUs
 	ciCode         = 0x01  // Connection Identifier PGI code
 	calledURcode   = 0x09  // Called SS-user Reference PI code
@@ -158,19 +158,18 @@ func oa(MaxTSDUSize [4]byte, version byte) []byte {
 
 /* AC - Accept */
 func ac(cv acVars) []byte {
-	ci := makeConnID(cv.ConnID, calledURcode)  // Connection Identifier PGI
-	item := makeConnAcc(cv.cnVars)             // Connect/Accept Item PGI
-	ti := unit(tiCode, []byte{cv.tokenItem})   // Token Item PI
-	sur := unit(surCode, cv.sesUserReq[:])     // Session User Requirements PI
-	ei := unit(eiCode, []byte{cv.enclItem})    // Enclosure Item PI
-	srcSSel := unit(srcSSELCode, cv.locSSEL)   // Calling Session Selector PI
-	dstSSel := unit(dstSSELCode, cv.remSSEL)   // Called Session Selector PI
-	ud := unit(udCode, cv.userData)            // User Data PGI
+	ci := makeConnID(cv.ConnID, calledURcode) // Connection Identifier PGI
+	item := makeConnAcc(cv.cnVars)            // Connect/Accept Item PGI
+	ti := unit(tiCode, []byte{cv.tokenItem})  // Token Item PI
+	sur := unit(surCode, cv.sesUserReq[:])    // Session User Requirements PI
+	ei := unit(eiCode, []byte{cv.enclItem})   // Enclosure Item PI
+	srcSSel := unit(srcSSELCode, cv.locSSEL)  // Calling Session Selector PI
+	dstSSel := unit(dstSSELCode, cv.remSSEL)  // Called Session Selector PI
+	ud := unit(udCode, cv.userData)           // User Data PGI
 	// build complete SPDU
 	params := units(ci, item, ti, sur, ei, srcSSel, dstSSel, ud)
 	return spdu(params, acID)
 }
-
 
 /* RF - Refuse */
 func rf(v rfVars) []byte {
@@ -187,7 +186,7 @@ func rf(v rfVars) []byte {
 
 /* DT - Data Transfer */
 func dt(enclItem byte, userInfo []byte) []byte {
-	ei := unit(eiCode, []byte{enclItem})   // Enclosure Item PI
+	ei := unit(eiCode, []byte{enclItem}) // Enclosure Item PI
 	// build complete SPDU
 	return append(spdu(ei, dtID), userInfo...)
 }
@@ -255,7 +254,7 @@ func unit(code byte, value []byte) []byte {
 }
 
 // extract the parameter with the given ID from an SPDU or a PGI unit
-// if b is an SPDU, PI units contained inside PGI units are _not_ evaluated. 
+// if b is an SPDU, PI units contained inside PGI units are _not_ evaluated.
 // To evaluate them, the function must be called with the PGI as input.
 func getParameter(b []byte, id byte) []byte {
 	param := b[:]
@@ -276,7 +275,7 @@ func getParameter(b []byte, id byte) []byte {
 }
 
 // determine if b represents a valid SPDU or PGI.
-// if b is an SPDU, PI units contained inside PGI units are _not_ validated. 
+// if b is an SPDU, PI units contained inside PGI units are _not_ validated.
 // To validate them, the function must be called with the PGI as input.
 func isValid(b []byte) bool {
 	if len(b) < unitMinLen {
@@ -333,6 +332,16 @@ func isAC(incoming []byte) bool {
 // determine if a packet is an RF
 func isRF(incoming []byte) bool {
 	return isType(incoming, rfID)
+}
+
+// determine if a packet is a GT
+func isGT(incoming []byte) bool {
+	return isType(incoming, gtID)
+}
+
+// determine if a packet is a DT
+func isDT(incoming []byte) bool {
+	return isType(incoming, dtID)
 }
 
 // determine if a packet is of type identified by id
@@ -407,15 +416,15 @@ func validateAC(spdu []byte, cv cnVars) (valid bool) {
 }
 
 // validate an RF SPDU
-// If an OVERFLOW ACCEPT SPDU has been sent previously on the session 
+// If an OVERFLOW ACCEPT SPDU has been sent previously on the session
 // connection, then the vn parameter shall have the
-// same value as was indicated in the OVERFLOW ACCEPT SPDU, zero otherwise. 
+// same value as was indicated in the OVERFLOW ACCEPT SPDU, zero otherwise.
 func validateRF(spdu []byte, vn byte) bool {
 	if !isValid(spdu) {
 		return false
 	}
 	// connection identifier
-	ok, _ := validateConnID(spdu, calledURcode) 
+	ok, _ := validateConnID(spdu, calledURcode)
 	if !ok {
 		return false
 	}
@@ -434,7 +443,7 @@ func validateRF(spdu []byte, vn byte) bool {
 	}
 	ok, sur := validateSUR(spdu)
 	if (sur[0] > 0 && (!reasonTwo)) || !ok {
-		return false 
+		return false
 	}
 	// version number
 	versionNumber := getParameter(spdu, vnCode)
@@ -442,7 +451,7 @@ func validateRF(spdu []byte, vn byte) bool {
 		if len(versionNumber) != vnLen {
 			return false
 		}
-		if (versionNumber[0] > vnMax) {
+		if versionNumber[0] > vnMax {
 			return false
 		}
 		if (vn > 0) && (versionNumber[0] != vn) {
@@ -572,7 +581,7 @@ func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 func validateSUR(spdu []byte) (ok bool, sur [2]byte) {
 	sesUserReq := getParameter(spdu, surCode)
 	if len(sesUserReq) > 0 {
-		if (len(sesUserReq) != surLen) {
+		if len(sesUserReq) != surLen {
 			return false, sur
 		}
 		var surVal uint16
@@ -597,7 +606,7 @@ func validateOverflow(spdu []byte, ca connAcc) (ok, overflow bool) {
 // decode an AC SPDU
 // spdu is assumed to be _structurally_ valid (validateAC returned with success)
 func decodeAC(spdu []byte) (v acVars) {
-	 return
+	return
 }
 
 // decode an RF SPDU
@@ -623,4 +632,19 @@ func decodeRF(spdu []byte) (v rfVars) {
 	}
 	v.reasonCode = getParameter(spdu, reasonCode)
 	return v
+}
+
+func getDT(tsdu []byte) (dt []byte) {
+	if isGT(tsdu) {
+		gtLen := paramLen(tsdu)
+		dt = tsdu[gtLen+2:]
+	}
+	if isDT(dt) {
+		enclItem := getParameter(dt, eiCode)
+		if len(enclItem) > 0 {
+			return dt[5:]
+		}
+		return dt[2:]
+	}
+	return nil
 }
