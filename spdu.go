@@ -223,7 +223,11 @@ func makeConnID(id ConnID, URcode byte) []byte {
 // construct a Connect/Accept Item PGI
 func makeConnAcc(cv cnVars) []byte {
 	po := unit(poCode, []byte{cv.protOpt})
-	tsdu := unit(tsizeCode, cv.maxTSDUSize[:])
+	zero := make([]byte, 4)
+	var tsdu []byte
+	if !bytes.Equal(cv.maxTSDUSize[:], zero) {
+		tsdu = unit(tsizeCode, cv.maxTSDUSize[:])
+	}
 	vn := unit(vnCode, []byte{cv.version})
 	isn := unit(isnCode, cv.initialSN)
 	tsi := unit(tsiCode, []byte{cv.tokenSetting})
@@ -527,7 +531,6 @@ func validateConnID(spdu []byte, urCode byte) (ok bool, cid ConnID) {
 // validate a Connect/Accept Item PGI
 func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 	caItem := getParameter(spdu, itemCode)
-	fmt.Printf("caItem: %x\n", caItem)
 	if caItem == nil {
 		return true, ca
 	}

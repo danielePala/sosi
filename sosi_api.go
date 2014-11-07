@@ -225,7 +225,6 @@ func ResolveSOSIAddr(snet, addr string) (sosiAddr *SOSIAddr, err error) {
 	if len(addr) > (index + 1) {
 		ssel = addr[index+1:]
 	}
-	fmt.Printf("transport: %v, ssel: %v, err: %v\n", tAddr, ssel, err)
 	tosiNet := sosiToTOSInet(snet)
 	tosiAddr, err := tosi.ResolveTOSIAddr(tosiNet, tAddr)
 	if err != nil {
@@ -331,12 +330,9 @@ func (l *SOSIListener) Accept() (net.Conn, error) {
 func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 	var reply []byte
 	var repCv acVars
-	valid, cv := validateCN(tsdu, addr.Ssel)
-	fmt.Printf("received: %v\n", cv)
+	valid, _ := validateCN(tsdu, addr.Ssel)
 	if valid {
-		// reply with an AC
-		reply = ac(repCv)
-		fmt.Printf("Sending AC... %v\n", reply)
+		reply = ac(repCv) // reply with an AC
 	} else {
 		// reply with a REFUSE
 	}
