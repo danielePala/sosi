@@ -3,7 +3,6 @@ package sosi
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 )
 
 const (
