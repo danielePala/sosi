@@ -33,6 +33,13 @@ func TestWrite2bytes(t *testing.T) {
 	testPayloads(t, DialOpt{}, []byte{0x01, 0x02})
 }
 
+// Test 2
+// test data write with 2 bytes and maximum size of 1 byte.
+// It should fail.
+func TestWrite2bytesFail(t *testing.T) {
+	testPayloadsFail(t, DialOpt{MaxTSDUSizeOut: 1}, []byte{0x01, 0x02})
+}
+
 // send a given set of payloads as a single message
 func testPayloads(t *testing.T, opt DialOpt, payloads ...[]byte) {
 	var allPayloads []byte
@@ -58,6 +65,35 @@ func testPayloads(t *testing.T, opt DialOpt, payloads ...[]byte) {
 	_, err = conn.Write(allPayloads)
 	if err != nil {
 		t.Log(err.Error())
+		t.FailNow()
+	}
+	time.Sleep(time.Millisecond)
+}
+
+// send a given set of payloads as a single message. Expects to fail.
+func testPayloadsFail(t *testing.T, opt DialOpt, payloads ...[]byte) {
+	var allPayloads []byte
+	for _, payload := range payloads {
+		allPayloads = append(allPayloads, payload...)
+	}
+	// start a server
+	go sosiServerReadPayloads(t, opt, payloads...)
+	// wait for server to come up
+	time.Sleep(time.Millisecond)
+	sosiAddr, err := ResolveSOSIAddr("sosi", "127.0.0.1::105:106")
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+	// try to connect
+	conn, err := DialOptSOSI("sosi", nil, sosiAddr, opt)
+	defer cleanup(t, conn, nil)
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+	_, err = conn.Write(allPayloads)
+	if err == nil {
 		t.FailNow()
 	}
 	time.Sleep(time.Millisecond)
