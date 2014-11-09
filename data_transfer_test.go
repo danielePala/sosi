@@ -77,7 +77,7 @@ func testPayloadsFail(t *testing.T, opt DialOpt, payloads ...[]byte) {
 		allPayloads = append(allPayloads, payload...)
 	}
 	// start a server
-	go sosiServerReadPayloads(t, opt, payloads...)
+	go sosiServerReadPayloadsFail(t, opt, allPayloads)
 	// wait for server to come up
 	time.Sleep(time.Millisecond)
 	sosiAddr, err := ResolveSOSIAddr("sosi", "127.0.0.1::105:106")
@@ -93,6 +93,12 @@ func testPayloadsFail(t *testing.T, opt DialOpt, payloads ...[]byte) {
 		t.FailNow()
 	}
 	_, err = conn.Write(allPayloads)
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+	buf := make([]byte, 100)
+	_, err = conn.Read(buf)
 	if err == nil {
 		t.FailNow()
 	}
@@ -140,6 +146,37 @@ func sosiServerReadPayloads(t *testing.T, opt DialOpt, payloads ...[]byte) {
 			t.Log("Wrong data values")
 			t.FailNow()
 		}
+	}
+}
+
+// a sosi server reading arbitrary payloads. A fault is expected.
+func sosiServerReadPayloadsFail(t *testing.T, opt DialOpt, payload []byte) {
+	var conn *SOSIConn
+	var listener *SOSIListener
+	sosiAddr, err := ResolveSOSIAddr("sosi", "127.0.0.1::105:106")
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+	listener, err = ListenSOSI("sosi", sosiAddr)
+	if err != nil {
+		cleanup(t, nil, listener)
+		t.Log(err.Error())
+		t.FailNow()
+	}
+	// listen for connections
+	c, err := listener.Accept()
+	conn = c.(*SOSIConn)
+	defer cleanup(t, conn, listener)
+	if err != nil {
+		t.Log(err.Error())
+		t.FailNow()
+	}
+	size := len(payload)
+	buf := make([]byte, size)
+	_, err = conn.Read(buf)
+	if err == nil {
+		t.FailNow()
 	}
 }
 
