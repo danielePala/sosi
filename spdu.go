@@ -20,7 +20,6 @@ const (
 	oaID = 0x10 // ID of an OA SPDU
 	// RF-related defs
 	rfID         = 0x0c // ID of an RF SPDU
-	tdisCode     = 0x11 // Transport Disconnect PI code
 	reasonCode   = 0x32 // Reason Code PI code
 	keepTConn    = 0x00 // Transport connection is kept
 	releaseTConn = 0x01 // Transport connection is released
@@ -30,6 +29,9 @@ const (
 	gtID = 0x01 // ID of a GT SPDU
 	// PT-related defs
 	ptID = 0x02 // ID of a PT SPDU
+	// AB-related defs
+	abID    = 0xfa // ID of an AB SPDU
+	rpvCode = 0x31 // Reflect Parameter Values PI code
 	// common defs for various SPDUs
 	ciCode         = 0x01  // Connection Identifier PGI code
 	calledURcode   = 0x09  // Called SS-user Reference PI code
@@ -73,6 +75,7 @@ const (
 	smallLen       = 2     // Header length of a 'small' unit
 	bigLen         = 4     // Header length of a 'big' unit
 	urMaxLen       = 64    // Calling or called SS-user Reference max length
+	tdisCode       = 0x11  // Transport Disconnect PI code
 )
 
 // variables associated with a CN request
@@ -208,6 +211,17 @@ func pt(tokenItem, enclItem byte, userData []byte) []byte {
 	// build complete SPDU
 	params := units(ti, ei, ud)
 	return spdu(params, ptID)
+}
+
+/* AB - Abort */
+func ab(tdis, enclItem byte, rParamVals, userData []byte) []byte {
+	td := unit(tdisCode, []byte{tdis})   // Transport Disconnect PI
+	ei := unit(eiCode, []byte{enclItem}) // Enclosure Item PI
+	rpv := unit(rpvCode, rParamVals)     // Reflect Parameter Values PI
+	ud := unit(udCode, userData)         // User Data PGI
+	// build complete SPDU
+	params := units(td, ei, rpv, ud)
+	return spdu(params, abID)
 }
 
 // construct a Connection Identifier PGI
