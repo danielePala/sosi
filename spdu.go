@@ -653,9 +653,17 @@ func decodeRF(spdu []byte) (v rfVars) {
 func getDT(tsdu []byte) (dt []byte) {
 	if isGT(tsdu) {
 		gtLen := paramLen(tsdu)
+		valid := validateGT(tsdu[:gtLen+2])
+		if !valid {
+			return nil
+		}
 		dt = tsdu[gtLen+2:]
 	}
 	if isDT(dt) {
+		valid := validateDT(dt)
+		if !valid {
+			return nil
+		}
 		enclItem := getParameter(dt, eiCode)
 		if len(enclItem) > 0 {
 			return dt[5:]
@@ -663,4 +671,12 @@ func getDT(tsdu []byte) (dt []byte) {
 		return dt[2:]
 	}
 	return nil
+}
+
+func validateGT(spdu []byte) bool {
+	return true
+}
+
+func validateDT(spdu []byte) bool {
+	return true
 }
