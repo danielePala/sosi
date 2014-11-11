@@ -30,7 +30,7 @@ const (
 	// PT-related defs
 	ptID = 0x02 // ID of a PT SPDU
 	// AB-related defs
-	abID    = 0xfa // ID of an AB SPDU
+	abID    = 0x19 // ID of an AB SPDU
 	rpvCode = 0x31 // Reflect Parameter Values PI code
 	// common defs for various SPDUs
 	ciCode         = 0x01  // Connection Identifier PGI code

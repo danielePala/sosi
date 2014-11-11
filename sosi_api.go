@@ -256,6 +256,9 @@ func (c *SOSIConn) Read(b []byte) (n int, err error) {
 		return 0, err
 	}
 	dt := getDT(tsdu)
+	if dt == nil {
+		c.tosiConn.Write(ab(1, 0, nil, nil))
+	}
 	copy(b, dt)
 	return len(dt), nil
 }
