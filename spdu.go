@@ -32,6 +32,8 @@ const (
 	// AB-related defs
 	abID    = 0x19 // ID of an AB SPDU
 	rpvCode = 0x31 // Reflect Parameter Values PI code
+	// AA-related defs
+	aaID = 0x1a // ID of an AA SPDU
 	// common defs for various SPDUs
 	ciCode         = 0x01  // Connection Identifier PGI code
 	calledURcode   = 0x09  // Called SS-user Reference PI code
@@ -222,6 +224,11 @@ func ab(tdis, enclItem byte, rParamVals, userData []byte) []byte {
 	// build complete SPDU
 	params := units(td, ei, rpv, ud)
 	return spdu(params, abID)
+}
+
+/* AB - Abort Accept */
+func aa() []byte {
+	return spdu(nil, aaID)
 }
 
 // construct a Connection Identifier PGI
