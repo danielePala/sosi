@@ -255,7 +255,7 @@ func (c *SOSIConn) Read(b []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	dt := getDT(tsdu)
+	dt := getData(tsdu)
 	if dt == nil {
 		c.tosiConn.Write(ab(1, 0, nil, nil))
 	}

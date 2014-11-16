@@ -328,6 +328,25 @@ func isValid(b []byte) bool {
 	return true
 }
 
+// read the header length of an SPDU, PGI or PI
+func headerLen(buf []byte) int {
+	if int(buf[1]) <= smallUnit {
+		return smallLen
+	}
+	return bigLen
+}
+
+// read the Length Indicator field of an SPDU, PGI or PI
+func paramLen(buf []byte) int {
+	if int(buf[1]) <= smallUnit {
+		return int(buf[1])
+	}
+	var lenInd uint16
+	lenBuf := bytes.NewBuffer(buf[2:3])
+	binary.Read(lenBuf, binary.BigEndian, &lenInd)
+	return int(lenInd)
+}
+
 // concatenate any number of PI units
 func units(bufs ...[]byte) (result []byte) {
 	for _, buf := range bufs {
@@ -375,25 +394,6 @@ func isType(incoming []byte, id byte) bool {
 		return false
 	}
 	return incoming[0] == id
-}
-
-// read the Length Indicator field of an SPDU, PGI or PI
-func paramLen(buf []byte) int {
-	if int(buf[1]) <= smallUnit {
-		return int(buf[1])
-	}
-	var lenInd uint16
-	lenBuf := bytes.NewBuffer(buf[2:3])
-	binary.Read(lenBuf, binary.BigEndian, &lenInd)
-	return int(lenInd)
-}
-
-// read the header length of an SPDU, PGI or PI
-func headerLen(buf []byte) int {
-	if int(buf[1]) <= smallUnit {
-		return smallLen
-	}
-	return bigLen
 }
 
 // validate a CN SPDU
@@ -657,14 +657,17 @@ func decodeRF(spdu []byte) (v rfVars) {
 	return v
 }
 
-func getDT(tsdu []byte) (dt []byte) {
+func getData(tsdu []byte) (dt []byte) {
 	if isGT(tsdu) {
-		gtLen := paramLen(tsdu)
-		valid := validateGT(tsdu[:gtLen+2])
+		valid := validateGT(tsdu)
 		if !valid {
 			return nil
 		}
-		dt = tsdu[gtLen+2:]
+		gtLen := headerLen(TSDU) + paramLen(tsdu)
+		if len(tsdu) < gtLen {
+			return false
+		}
+		dt = tsdu[gtLen:]
 	}
 	if isDT(dt) {
 		valid := validateDT(dt)
@@ -681,9 +684,15 @@ func getDT(tsdu []byte) (dt []byte) {
 }
 
 func validateGT(spdu []byte) bool {
+	if !isValid(spdu) {
+		return false
+	}
 	return true
 }
 
 func validateDT(spdu []byte) bool {
+	if !isValid(spdu) {
+		return false
+	}
 	return true
 }
