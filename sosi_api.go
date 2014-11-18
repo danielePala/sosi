@@ -30,6 +30,7 @@ type SOSIConn struct {
 	Reused         bool          // Is this a connection kept for reuse?
 	MaxTSDUSizeOut uint16        // max TSDU size from initiator to responder
 	MaxTSDUSizeIn  uint16        // max TSDU size from responder to initiator
+	Token          int           //token status
 	laddr, raddr   SOSIAddr      // local and remote address
 	vn             byte          // selected version number
 	tosiConn       tosi.TOSIConn // TOSI connection

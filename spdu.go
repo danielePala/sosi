@@ -122,6 +122,12 @@ type connAcc struct {
 	protOpt, version                byte
 }
 
+type ReadInfo struct {
+	Data        []byte
+	StartOfTSDU bool // is this data the first part of a SSDU?
+	EndOfTSDU   bool // is this data the last part of a SSDU?
+}
+
 /* CN - Connect */
 func cn(cv cnVars) []byte {
 	ci := makeConnID(cv.ConnID, callingURCode) // Connection Identifier PGI
@@ -690,9 +696,23 @@ func validateGT(spdu []byte) bool {
 	return true
 }
 
+func validatePT(spdu []byte) bool {
+	if !isValid(spdu) {
+		return false
+	}
+	return true
+}
+
 func validateDT(spdu []byte) bool {
 	if !isValid(spdu) {
 		return false
+	}
+	// enclosure item
+	encItem := getParameter(spdu, eiCode)
+	if len(encItem) > 0 {
+		if encItem[0] > eiMax {
+			return false
+		}
 	}
 	return true
 }
