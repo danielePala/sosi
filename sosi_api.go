@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net"
 	"strings"
 	"time"
 	"tosi"
-	"fmt"
 )
 
 // DialOpt contains options to be used by the DialOptSOSI function during
@@ -257,7 +257,7 @@ func (c *SOSIConn) Read(b []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	if c.MaxTSDUSizeIn > 0 { 
+	if c.MaxTSDUSizeIn > 0 {
 		if len(tsdu) > int(c.MaxTSDUSizeIn) {
 			return 0, err
 		}
@@ -294,36 +294,36 @@ func (c *SOSIConn) SetWriteDeadline(t time.Time) error {
 // TODO: implement this
 func (c *SOSIConn) Write(b []byte) (n int, err error) {
 	if b == nil {
-                return
-        }
+		return
+	}
 	bufLen := len(b)
-        // if b is too big, split it into smaller chunks
-        if bufLen > c.maxTsduSizeOut {
-                numWrites := (bufLen / c.maxTsduSizeOut)
-                if (bufLen % maxSduSize) > 0 {
-                        numWrites += 1
-                }
+	// if b is too big, split it into smaller chunks
+	if bufLen > c.maxTsduSizeOut {
+		numWrites := (bufLen / c.maxTsduSizeOut)
+		if (bufLen % maxSduSize) > 0 {
+			numWrites += 1
+		}
 		var endOfTsdu byte
-                for i := 0; i < numWrites; i++ {
-                        start := maxSduSize * i
-                        end := maxSduSize * (i + 1)
-                        if end > bufLen {
-                                end = bufLen
-                        }
-                        if i == numWrites-1 {
-                                endOfTsdu = nrEot
-                        } else {
-                                endOfTsdu = nrNonEot
-                        }
-                        part := append(gt(0, 0, nil), dt(3, b[start:end])...) 
-                        nPart, err := c.tosiConn.Write(part)
-                        n = n + nPart
-                        if err != nil {
-                                return n, err
-                        }
-                }
-                return
-        }
+		for i := 0; i < numWrites; i++ {
+			start := maxSduSize * i
+			end := maxSduSize * (i + 1)
+			if end > bufLen {
+				end = bufLen
+			}
+			if i == numWrites-1 {
+				endOfTsdu = nrEot
+			} else {
+				endOfTsdu = nrNonEot
+			}
+			part := append(gt(0, 0, nil), dt(3, b[start:end])...)
+			nPart, err := c.tosiConn.Write(part)
+			n = n + nPart
+			if err != nil {
+				return n, err
+			}
+		}
+		return
+	}
 	return c.tosiConn.Write(append(gt(0, 0, nil), dt(3, b)...))
 }
 
@@ -378,14 +378,14 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 	}
 	_, err := t.Write(reply)
 	if valid && (err == nil) {
-		var MaxTSDUSizeIn uint16  
+		var MaxTSDUSizeIn uint16
 		buf := bytes.NewReader(cv.maxTSDUSize[0:2])
-                _ = binary.Read(buf, binary.BigEndian, &MaxTSDUSizeIn)
+		_ = binary.Read(buf, binary.BigEndian, &MaxTSDUSizeIn)
 		fmt.Printf("Max: %v\n", MaxTSDUSizeIn)
 		return SOSIConn{
 			MaxTSDUSizeIn: MaxTSDUSizeIn,
-			tosiConn: t,
-			laddr:    addr}, nil
+			tosiConn:      t,
+			laddr:         addr}, nil
 	}
 	t.Close()
 	if err == nil {

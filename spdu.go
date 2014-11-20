@@ -298,7 +298,7 @@ func getParameter(b []byte, id byte) []byte {
 		if pLen < paramLen(b) {
 			param = param[pLen+headerLen(param):]
 		} else {
-			param = param[headerLen(param):pLen+headerLen(param)]
+			param = param[headerLen(param) : pLen+headerLen(param)]
 		}
 	}
 	return nil
