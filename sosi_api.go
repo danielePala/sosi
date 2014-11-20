@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 	"tosi"
+	"fmt"
 )
 
 // DialOpt contains options to be used by the DialOptSOSI function during
@@ -17,8 +18,8 @@ import (
 // to be sent during connection establishment.
 type DialOpt struct {
 	ConnID                // Connection Identifier variables
-	MaxTSDUSizeOut uint16 // max TSDU size from initiator to responder
-	MaxTSDUSizeIn  uint16 // max TSDU size from responder to initiator
+	MaxTSDUSizeOut uint16 // max TSDU size from local to remote
+	MaxTSDUSizeIn  uint16 // max TSDU size from remote to local
 	Data           []byte // initial user data
 }
 
@@ -256,6 +257,11 @@ func (c *SOSIConn) Read(b []byte) (n int, err error) {
 	if err != nil {
 		return 0, err
 	}
+	if c.MaxTSDUSizeIn > 0 { 
+		if len(tsdu) > int(c.MaxTSDUSizeIn) {
+			return 0, err
+		}
+	}
 	dt := getData(tsdu)
 	if dt == nil {
 		c.tosiConn.Write(ab(1, 0, nil, nil))
@@ -287,6 +293,37 @@ func (c *SOSIConn) SetWriteDeadline(t time.Time) error {
 // Write implements the net.Conn Write method.
 // TODO: implement this
 func (c *SOSIConn) Write(b []byte) (n int, err error) {
+	if b == nil {
+                return
+        }
+	bufLen := len(b)
+        // if b is too big, split it into smaller chunks
+        if bufLen > c.maxTsduSizeOut {
+                numWrites := (bufLen / c.maxTsduSizeOut)
+                if (bufLen % maxSduSize) > 0 {
+                        numWrites += 1
+                }
+		var endOfTsdu byte
+                for i := 0; i < numWrites; i++ {
+                        start := maxSduSize * i
+                        end := maxSduSize * (i + 1)
+                        if end > bufLen {
+                                end = bufLen
+                        }
+                        if i == numWrites-1 {
+                                endOfTsdu = nrEot
+                        } else {
+                                endOfTsdu = nrNonEot
+                        }
+                        part := append(gt(0, 0, nil), dt(3, b[start:end])...) 
+                        nPart, err := c.tosiConn.Write(part)
+                        n = n + nPart
+                        if err != nil {
+                                return n, err
+                        }
+                }
+                return
+        }
 	return c.tosiConn.Write(append(gt(0, 0, nil), dt(3, b)...))
 }
 
@@ -333,7 +370,7 @@ func (l *SOSIListener) Accept() (net.Conn, error) {
 func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 	var reply []byte
 	var repCv acVars
-	valid, _ := validateCN(tsdu, addr.Ssel)
+	valid, cv := validateCN(tsdu, addr.Ssel)
 	if valid {
 		reply = ac(repCv) // reply with an AC
 	} else {
@@ -341,7 +378,12 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 	}
 	_, err := t.Write(reply)
 	if valid && (err == nil) {
+		var MaxTSDUSizeIn uint16  
+		buf := bytes.NewReader(cv.maxTSDUSize[0:2])
+                _ = binary.Read(buf, binary.BigEndian, &MaxTSDUSizeIn)
+		fmt.Printf("Max: %v\n", MaxTSDUSizeIn)
 		return SOSIConn{
+			MaxTSDUSizeIn: MaxTSDUSizeIn,
 			tosiConn: t,
 			laddr:    addr}, nil
 	}

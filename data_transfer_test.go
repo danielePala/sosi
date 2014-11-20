@@ -35,9 +35,9 @@ func TestWrite2bytes(t *testing.T) {
 
 // Test 2
 // test data write with 2 bytes and maximum size of 1 byte.
-// It should fail.
-func TestWrite2bytesFail(t *testing.T) {
-	testPayloadsFail(t, DialOpt{MaxTSDUSizeOut: 1}, []byte{0x01, 0x02})
+// No error should occur.
+func TestWrite1byte2times(t *testing.T) {
+	testPayloads(t, DialOpt{MaxTSDUSizeOut: 1}, []byte{0x01}, []byte{0x02})
 }
 
 // send a given set of payloads as a single message

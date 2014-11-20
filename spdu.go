@@ -3,6 +3,7 @@ package sosi
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 const (
@@ -291,14 +292,13 @@ func getParameter(b []byte, id byte) []byte {
 	for len(param) > unitMinLen {
 		pLen := paramLen(param)
 		pID := param[0]
-		param = param[headerLen(param):]
 		if pID == id {
-			return param[:pLen]
+			return param[:pLen+headerLen(param)]
 		}
 		if pLen < paramLen(b) {
-			param = param[pLen:]
+			param = param[pLen+headerLen(param):]
 		} else {
-			param = param[:pLen]
+			param = param[headerLen(param):pLen+headerLen(param)]
 		}
 	}
 	return nil
@@ -417,8 +417,9 @@ func validateCN(spdu []byte, locSSEL []byte) (valid bool, cv cnVars) {
 	if !valid {
 		return false, cv
 	}
+	fmt.Printf("tsize: %v\n", cv.maxTSDUSize)
 	// Session User Requirements
-	valid, cv.sesUserReq = validateSUR(spdu)
+	/*valid, cv.sesUserReq = validateSUR(spdu)
 	if !valid {
 		return false, cv
 	}
@@ -433,7 +434,7 @@ func validateCN(spdu []byte, locSSEL []byte) (valid bool, cv cnVars) {
 		return false, cv
 	}
 	// Data Overflow
-	valid, cv.dataOverflow = validateOverflow(spdu, cv.connAcc)
+	valid, cv.dataOverflow = validateOverflow(spdu, cv.connAcc)*/
 	return true, cv
 }
 
@@ -575,17 +576,18 @@ func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 		if (po[0] != poNormalConc) && (po[0] != poExtendedConc) {
 			return false, ca
 		}
-	}
+	}*/
 	// TSDU Maximum Size
 	tsize := getParameter(caItem, tsizeCode)
 	if tsize != nil {
+		tsize = tsize[headerLen(tsize):]
 		if len(tsize) != tsizeLen {
 			return false, ca
 		}
 		copy(ca.maxTSDUSize[:], tsize)
 	}
 	// Version Number
-	vn := getParameter(caItem, vnCode)
+	/*vn := getParameter(caItem, vnCode)
 	if vn == nil {
 		return false, ca
 	} else {
@@ -669,9 +671,9 @@ func getData(tsdu []byte) (dt []byte) {
 		if !valid {
 			return nil
 		}
-		gtLen := headerLen(TSDU) + paramLen(tsdu)
+		gtLen := headerLen(tsdu) + paramLen(tsdu)
 		if len(tsdu) < gtLen {
-			return false
+			return nil
 		}
 		dt = tsdu[gtLen:]
 	}
@@ -709,6 +711,7 @@ func validateDT(spdu []byte) bool {
 	}
 	// enclosure item
 	encItem := getParameter(spdu, eiCode)
+	encItem = encItem[headerLen(encItem):]
 	if len(encItem) > 0 {
 		if encItem[0] > eiMax {
 			return false
