@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 	"time"
@@ -291,29 +290,28 @@ func (c *SOSIConn) SetWriteDeadline(t time.Time) error {
 }
 
 // Write implements the net.Conn Write method.
-// TODO: implement this
 func (c *SOSIConn) Write(b []byte) (n int, err error) {
 	if b == nil {
 		return
 	}
 	bufLen := len(b)
+	var maxWrite int
+	if c.MaxTSDUSizeOut > 0 {
+		maxWrite = int(c.MaxTSDUSizeOut)
+	} else {
+		maxWrite = bufLen
+	}
 	// if b is too big, split it into smaller chunks
-	if bufLen > c.maxTsduSizeOut {
-		numWrites := (bufLen / c.maxTsduSizeOut)
-		if (bufLen % maxSduSize) > 0 {
+	if bufLen > maxWrite {
+		numWrites := (bufLen / maxWrite)
+		if (bufLen % maxWrite) > 0 {
 			numWrites += 1
 		}
-		var endOfTsdu byte
 		for i := 0; i < numWrites; i++ {
-			start := maxSduSize * i
-			end := maxSduSize * (i + 1)
+			start := maxWrite * i
+			end := maxWrite * (i + 1)
 			if end > bufLen {
 				end = bufLen
-			}
-			if i == numWrites-1 {
-				endOfTsdu = nrEot
-			} else {
-				endOfTsdu = nrNonEot
 			}
 			part := append(gt(0, 0, nil), dt(3, b[start:end])...)
 			nPart, err := c.tosiConn.Write(part)
@@ -381,7 +379,6 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 		var MaxTSDUSizeIn uint16
 		buf := bytes.NewReader(cv.maxTSDUSize[0:2])
 		_ = binary.Read(buf, binary.BigEndian, &MaxTSDUSizeIn)
-		fmt.Printf("Max: %v\n", MaxTSDUSizeIn)
 		return SOSIConn{
 			MaxTSDUSizeIn: MaxTSDUSizeIn,
 			tosiConn:      t,

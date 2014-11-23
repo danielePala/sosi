@@ -3,7 +3,6 @@ package sosi
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 )
 
 const (
@@ -304,6 +303,14 @@ func getParameter(b []byte, id byte) []byte {
 	return nil
 }
 
+func getParameterValue(b []byte, id byte) []byte {
+	param := getParameter(b, id)
+	if param != nil {
+		return param[headerLen(param):]
+	}
+	return nil
+}
+
 // determine if b represents a valid SPDU or PGI.
 // if b is an SPDU, PI units contained inside PGI units are _not_ validated.
 // To validate them, the function must be called with the PGI as input.
@@ -417,24 +424,23 @@ func validateCN(spdu []byte, locSSEL []byte) (valid bool, cv cnVars) {
 	if !valid {
 		return false, cv
 	}
-	fmt.Printf("tsize: %v\n", cv.maxTSDUSize)
 	// Session User Requirements
 	/*valid, cv.sesUserReq = validateSUR(spdu)
 	if !valid {
 		return false, cv
-	}
+	}*/
 	// Calling Session Selector
-	cv.locSSEL = getParameter(spdu, srcSSELCode)
+	cv.locSSEL = getParameterValue(spdu, srcSSELCode)
 	if len(cv.locSSEL) > sselMaxLen {
 		return false, cv
 	}
 	// Called Session Selector
-	cv.remSSEL = getParameter(spdu, dstSSELCode)
+	cv.remSSEL = getParameterValue(spdu, dstSSELCode)
 	if !bytes.Equal(cv.remSSEL, locSSEL) {
 		return false, cv
 	}
 	// Data Overflow
-	valid, cv.dataOverflow = validateOverflow(spdu, cv.connAcc)*/
+	valid, cv.dataOverflow = validateOverflow(spdu, cv.connAcc)
 	return true, cv
 }
 
