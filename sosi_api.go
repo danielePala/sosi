@@ -134,11 +134,11 @@ func dial(t *tosi.TOSIConn, loc, rem *SOSIAddr, cv cnVars) (*SOSIConn, error) {
 	// REFUSE SPDU
 	if isRF(tsdu) {
 		err = errors.New("Connection request refused")
-		if !validateRF(tsdu, 0) {
+		valid, v := validateRF(tsdu, 0)
+		if !valid {
 			t.Close()
 			return nil, err
 		}
-		v := decodeRF(tsdu)
 		if v.tdisc == 0 {
 			reused := &SOSIConn{
 				Reused:   true,

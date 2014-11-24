@@ -103,7 +103,7 @@ type rfVars struct {
 	tdisc      byte
 	sesUserReq [2]byte
 	version    byte
-	enclItem   byte // Enclosure Item
+	encItem    byte // Enclosure Item
 	reasonCode []byte
 }
 
@@ -187,7 +187,7 @@ func rf(v rfVars) []byte {
 	td := unit(tdisCode, []byte{v.tdisc})    // Transport Disconnect PI
 	sur := unit(surCode, v.sesUserReq[:])    // Session User Requirements PI
 	vn := unit(vnCode, []byte{v.version})    // Session User Requirements PI
-	ei := unit(eiCode, []byte{v.enclItem})   // Enclosure Item PI
+	ei := unit(eiCode, []byte{v.encItem})    // Enclosure Item PI
 	rc := unit(reasonCode, v.reasonCode)     // Reason Code PI
 	// build complete SPDU
 	params := units(ci, td, sur, vn, ei, rc)
@@ -425,10 +425,10 @@ func validateCN(spdu []byte, locSSEL []byte) (valid bool, cv cnVars) {
 		return false, cv
 	}
 	// Session User Requirements
-	/*valid, cv.sesUserReq = validateSUR(spdu)
+	valid, cv.sesUserReq = validateSUR(spdu)
 	if !valid {
 		return false, cv
-	}*/
+	}
 	// Calling Session Selector
 	cv.locSSEL = getParameterValue(spdu, srcSSELCode)
 	if len(cv.locSSEL) > sselMaxLen {
@@ -456,76 +456,79 @@ func validateAC(spdu []byte, cv cnVars) (valid bool) {
 // If an OVERFLOW ACCEPT SPDU has been sent previously on the session
 // connection, then the vn parameter shall have the
 // same value as was indicated in the OVERFLOW ACCEPT SPDU, zero otherwise.
-func validateRF(spdu []byte, vn byte) bool {
+func validateRF(spdu []byte, vn byte) (valid bool, rv rfVars) {
 	if !isValid(spdu) {
-		return false
+		return false, rv
 	}
 	// connection identifier
-	ok, _ := validateConnID(spdu, calledURcode)
-	if !ok {
-		return false
+	valid, rv.ConnID = validateConnID(spdu, calledURcode)
+	if !valid {
+		return false, rv
 	}
 	// transport disconnect
-	tdisc := getParameter(spdu, tdisCode)
+	tdisc := getParameterValue(spdu, tdisCode)
 	if len(tdisc) > 0 {
+		rv.tdisc = tdisc[0]
 		if (tdisc[0] != keepTConn) && (tdisc[0] != releaseTConn) {
-			return false
+			return false, rv
 		}
 	}
 	// session user requirements
 	var reasonTwo bool
-	reason := getParameter(spdu, reasonCode)
-	if len(reason) != 0 {
-		reasonTwo = (reason[0] == 2)
+	rv.reasonCode = getParameterValue(spdu, reasonCode)
+	if len(rv.reasonCode) != 0 {
+		reasonTwo = (rv.reasonCode[0] == 2)
 	}
-	ok, sur := validateSUR(spdu)
-	if (sur[0] > 0 && (!reasonTwo)) || !ok {
-		return false
+	valid, rv.sesUserReq = validateSUR(spdu)
+	if (rv.sesUserReq[0] > 0 && (!reasonTwo)) || !valid {
+		return false, rv
 	}
 	// version number
-	versionNumber := getParameter(spdu, vnCode)
+	versionNumber := getParameterValue(spdu, vnCode)
 	if len(versionNumber) > 0 {
+		rv.version = versionNumber[0]
 		if len(versionNumber) != vnLen {
-			return false
+			return false, rv
 		}
 		if versionNumber[0] > vnMax {
-			return false
+			return false, rv
 		}
 		if (vn > 0) && (versionNumber[0] != vn) {
-			return false
+			return false, rv
 		}
 	} else {
 		if vn > 0 {
-			return false
+			return false, rv
 		}
-		versionNumber = []byte{vnOne} // default value
+		rv.version = vnOne // default value
 	}
 	// enclosure item
-	encItem := getParameter(spdu, eiCode)
+	encItem := getParameterValue(spdu, eiCode)
 	if len(encItem) > 0 {
+		rv.encItem = encItem[0]
 		if encItem[0] > eiMax {
-			return false
+			return false, rv
 		}
-		if versionNumber[0] == vnOne {
-			return false
+		if rv.version == vnOne {
+			return false, rv
 		}
 	}
 	// reason code
-	if len(reason) > 0 {
-		if (reason[0] > 2) && (reason[0] < 129) {
-			return false
+	if len(rv.reasonCode) > 0 {
+		if (rv.reasonCode[0] > 2) && (rv.reasonCode[0] < 129) {
+			return false, rv
 		}
-		if reason[0] > 134 {
-			return false
+		if rv.reasonCode[0] > 134 {
+			return false, rv
 		}
-		if (versionNumber[0] == vnOne) && (len(reason) > 513) {
-			return false
+		if (rv.version == vnOne) && (len(rv.reasonCode) > 513) {
+			return false, rv
 		}
-		if (versionNumber[0] > vnOne) && (len(spdu) > 65539) {
-			return false
+		if (rv.version > vnOne) && (len(spdu) > 65539) {
+			return false, rv
 		}
 	}
-	return true
+	return true, rv
 }
 
 // validate a Connection Identifier PGI
@@ -537,9 +540,9 @@ func validateConnID(spdu []byte, urCode byte) (ok bool, cid ConnID) {
 	if !isValid(cidItem) {
 		return false, cid
 	}
-	cid.SSUsrRef = getParameter(cidItem, urCode)
-	cid.ComRef = getParameter(cidItem, crCode)
-	cid.RefInfo = getParameter(cidItem, infoCode)
+	cid.SSUsrRef = getParameterValue(cidItem, urCode)
+	cid.ComRef = getParameterValue(cidItem, crCode)
+	cid.RefInfo = getParameterValue(cidItem, infoCode)
 	if len(cid.SSUsrRef) > urMaxLen {
 		return false, cid
 	}
@@ -567,11 +570,11 @@ func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 	if caItem == nil {
 		return true, ca
 	}
-	/*if !isValid(caItem) {
+	if !isValid(caItem) {
 		return false, ca
 	}
 	// Protocol Options
-	po := getParameter(caItem, poCode)
+	/*po := getParameter(caItem, poCode)
 	if po == nil {
 		return false, ca
 	} else {
@@ -584,9 +587,8 @@ func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 		}
 	}*/
 	// TSDU Maximum Size
-	tsize := getParameter(caItem, tsizeCode)
+	tsize := getParameterValue(caItem, tsizeCode)
 	if tsize != nil {
-		tsize = tsize[headerLen(tsize):]
 		if len(tsize) != tsizeLen {
 			return false, ca
 		}
@@ -616,7 +618,7 @@ func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 
 // validate a Session User Requirements PI
 func validateSUR(spdu []byte) (ok bool, sur [2]byte) {
-	sesUserReq := getParameter(spdu, surCode)
+	sesUserReq := getParameterValue(spdu, surCode)
 	if len(sesUserReq) > 0 {
 		if len(sesUserReq) != surLen {
 			return false, sur
@@ -644,31 +646,6 @@ func validateOverflow(spdu []byte, ca connAcc) (ok, overflow bool) {
 // spdu is assumed to be _structurally_ valid (validateAC returned with success)
 func decodeAC(spdu []byte) (v acVars) {
 	return
-}
-
-// decode an RF SPDU
-// the input is assumed to be valid (validateRF already called and passed)
-func decodeRF(spdu []byte) (v rfVars) {
-	v.SSUsrRef = getParameter(spdu, calledURcode)
-	v.ComRef = getParameter(spdu, crCode)
-	v.RefInfo = getParameter(spdu, infoCode)
-	tdisc := getParameter(spdu, tdisCode)
-	if len(tdisc) > 0 {
-		v.tdisc = tdisc[0]
-	} else {
-		v.tdisc = 1
-	}
-	copy(v.sesUserReq[:], getParameter(spdu, surCode))
-	version := getParameter(spdu, vnCode)
-	if len(version) > 0 {
-		v.version = version[0]
-	}
-	enclItem := getParameter(spdu, eiCode)
-	if len(enclItem) > 0 {
-		v.enclItem = enclItem[0]
-	}
-	v.reasonCode = getParameter(spdu, reasonCode)
-	return v
 }
 
 func getData(tsdu []byte) (dt []byte) {
