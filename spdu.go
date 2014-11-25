@@ -56,7 +56,7 @@ const (
 	tiCode         = 0x10  // Token Item PI code
 	isnCode        = 0x17  // Initial Serial Number PI code
 	tsiCode        = 0x1a  // Token Setting Item PI code
-	tsiLen        = 1      // Token Setting Item length
+	tsiLen         = 1     // Token Setting Item length
 	sisnCode       = 0x37  // Second Initial Serial Number PI code
 	ulsnCode       = 0x38  // Upper Limit Serial Number PI code
 	lisnCode       = 0x39  // Large Initial Serial Number PI code
