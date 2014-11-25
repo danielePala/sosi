@@ -56,6 +56,7 @@ const (
 	tiCode         = 0x10  // Token Item PI code
 	isnCode        = 0x17  // Initial Serial Number PI code
 	tsiCode        = 0x1a  // Token Setting Item PI code
+	tsiLen        = 1      // Token Setting Item length
 	sisnCode       = 0x37  // Second Initial Serial Number PI code
 	ulsnCode       = 0x38  // Upper Limit Serial Number PI code
 	lisnCode       = 0x39  // Large Initial Serial Number PI code
@@ -445,11 +446,15 @@ func validateCN(spdu []byte, locSSEL []byte) (valid bool, cv cnVars) {
 }
 
 // validate an AC SPDU
-func validateAC(spdu []byte, cv cnVars) (valid bool) {
+func validateAC(spdu []byte, cv cnVars) (valid bool, av acVars) {
 	if !isValid(spdu) {
-		return false
+		return false, av
 	}
-	return true
+	valid, av.cnVars = validateCN(spdu, cv.locSSEL)
+	if !valid {
+		return false, av
+	}
+	return true, av
 }
 
 // validate an RF SPDU
@@ -555,15 +560,6 @@ func validateConnID(spdu []byte, urCode byte) (ok bool, cid ConnID) {
 	return true, cid
 }
 
-// Connect/Accept Item PGI
-/*type connAcc struct {
-	tokenSetting                    byte
-	maxTSDUSize                     [4]byte
-	initialSN, secondSN             []byte
-	upperLimSN, largeSN, largeSecSN []byte
-	protOpt, version                byte
-}*/
-
 // validate a Connect/Accept Item PGI
 func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 	caItem := getParameter(spdu, itemCode)
@@ -574,7 +570,7 @@ func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 		return false, ca
 	}
 	// Protocol Options
-	/*po := getParameter(caItem, poCode)
+	po := getParameterValue(caItem, poCode)
 	if po == nil {
 		return false, ca
 	} else {
@@ -585,7 +581,7 @@ func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 		if (po[0] != poNormalConc) && (po[0] != poExtendedConc) {
 			return false, ca
 		}
-	}*/
+	}
 	// TSDU Maximum Size
 	tsize := getParameterValue(caItem, tsizeCode)
 	if tsize != nil {
@@ -595,7 +591,7 @@ func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 		copy(ca.maxTSDUSize[:], tsize)
 	}
 	// Version Number
-	/*vn := getParameter(caItem, vnCode)
+	vn := getParameterValue(caItem, vnCode)
 	if vn == nil {
 		return false, ca
 	} else {
@@ -606,13 +602,19 @@ func validateConnAcc(spdu []byte, sesUserReq [2]byte) (ok bool, ca connAcc) {
 		if vn[0] > vnMax {
 			return false, ca
 		}
-	}*/
-	/*isn := getParameter(caItem, isnCode)
-	tsi := getParameter(caItem, tsiCode)
-	sisn := getParameter(caItem, sisnCode)
-	ulsn := getParameter(caItem, ulsnCode)
-	lisn := getParameter(caItem, lisnCode)
-	lsisn := getParameter(caItem, lsisnCode)*/
+	}
+	ca.initialSN = getParameterValue(caItem, isnCode)
+	tsi := getParameterValue(caItem, tsiCode)
+	if tsi != nil {
+		if len(tsi) != tsiLen {
+			return false, ca
+		}
+		ca.tokenSetting = tsi[0]
+	}
+	ca.secondSN = getParameterValue(caItem, sisnCode)
+	ca.upperLimSN = getParameterValue(caItem, ulsnCode)
+	ca.largeSN = getParameterValue(caItem, lisnCode)
+	ca.largeSecSN = getParameterValue(caItem, lsisnCode)
 	return true, ca
 }
 
@@ -640,12 +642,6 @@ func validateOverflow(spdu []byte, ca connAcc) (ok, overflow bool) {
 		return false, cv
 	}*/
 	return true, true
-}
-
-// decode an AC SPDU
-// spdu is assumed to be _structurally_ valid (validateAC returned with success)
-func decodeAC(spdu []byte) (v acVars) {
-	return
 }
 
 func getData(tsdu []byte) (dt []byte) {

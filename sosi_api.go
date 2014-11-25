@@ -179,14 +179,13 @@ func dial(t *tosi.TOSIConn, loc, rem *SOSIAddr, cv cnVars) (*SOSIConn, error) {
 // parse an AC, handling errors
 func handleAC(tsdu []byte, tconn *tosi.TOSIConn, cv cnVars) (*SOSIConn, error) {
 	// we have an AC, check if it is valid
-	valid := validateAC(tsdu, cv)
+	valid, _ := validateAC(tsdu, cv)
 	if !valid {
 		// we got an invalid AC
 		// refuse the connection
 		tconn.Close()
 		return nil, errors.New("received an invalid AC")
 	}
-	//repCv := decodeAC(tsdu)
 	// all ok, connection established
 	return &SOSIConn{tosiConn: *tconn}, nil
 }
@@ -370,6 +369,7 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 	var repCv acVars
 	valid, cv := validateCN(tsdu, addr.Ssel)
 	if valid {
+		repCv.sesUserReq[1] = surValue
 		reply = ac(repCv) // reply with an AC
 	} else {
 		// reply with a REFUSE
