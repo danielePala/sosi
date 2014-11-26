@@ -179,7 +179,7 @@ func dial(t *tosi.TOSIConn, loc, rem *SOSIAddr, cv cnVars) (*SOSIConn, error) {
 // parse an AC, handling errors
 func handleAC(tsdu []byte, tconn *tosi.TOSIConn, cv cnVars) (*SOSIConn, error) {
 	// we have an AC, check if it is valid
-	valid, _ := validateAC(tsdu, cv)
+	valid, av := validateAC(tsdu, cv)
 	if !valid {
 		// we got an invalid AC
 		// refuse the connection
@@ -187,7 +187,9 @@ func handleAC(tsdu []byte, tconn *tosi.TOSIConn, cv cnVars) (*SOSIConn, error) {
 		return nil, errors.New("received an invalid AC")
 	}
 	// all ok, connection established
-	return &SOSIConn{tosiConn: *tconn}, nil
+	sconn := createSessionConn(cv, av)
+	sconn.tosiConn = *tconn
+	return sconn, nil
 }
 
 // convert a SOSI net to a TOSI net.

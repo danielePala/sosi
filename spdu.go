@@ -698,3 +698,7 @@ func validateDT(spdu []byte) bool {
 	}
 	return true
 }
+
+func createSessionConn(cv cnVars, av acVars) (sconn *SOSIConn) {
+	return &SOSIConn{}
+}
