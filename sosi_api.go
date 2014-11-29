@@ -34,6 +34,13 @@ type SOSIConn struct {
 	laddr, raddr   SOSIAddr      // local and remote address
 	vn             byte          // selected version number
 	tosiConn       tosi.TOSIConn // TOSI connection
+	userData                     // read buffer
+}
+
+// structure holding data from TOSI which hasn't been returned to the user yet
+type userData struct {
+	readBuf   []byte // read buffer
+	endOfSSDU bool   // is this data the last part of an SSDU?
 }
 
 // SOSIAddr represents the address of a SOSI end point.
@@ -252,6 +259,22 @@ func (c *SOSIConn) LocalAddr() net.Addr {
 // Read implements the net.Conn Read method.
 // TODO: implement this
 func (c *SOSIConn) Read(b []byte) (n int, err error) {
+	if b == nil {
+		return
+	}
+	// see if there's something in the read buffer
+	if c.readBuf != nil {
+		copy(b, c.readBuf)
+		if len(b) < len(c.readBuf) {
+			// Cannot return the whole SDU
+			n = len(b)
+			c.readBuf = c.readBuf[len(b):]
+		} else {
+			n = len(c.readBuf)
+			c.readBuf = nil
+		}
+		return n, nil
+	}
 	// try to read a GT+DT
 	tsdu, _, err := c.tosiConn.ReadTSDU()
 	if err != nil {
