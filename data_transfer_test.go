@@ -1,5 +1,5 @@
 /*
- Copyright 2014 Daniele Pala <pala.daniele@gmail.com>
+ Copyright 2014-2019 Daniele Pala <pala.daniele@gmail.com>
 
  This file is part of sosi.
 
@@ -14,7 +14,7 @@
  GNU General Public License for more details.
 
  You should have received a copy of the GNU General Public License
- along with   If not, see <http://www.gnu.org/licenses/>.
+ along with sosi. If not, see <http://www.gnu.org/licenses/>.
 
 */
 
