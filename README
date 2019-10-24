@@ -19,6 +19,31 @@ License
 
 See the COPYING file.
 
+Conformance
+-------
+As stated in X.225 Section 9.1 (
+
+"A system claiming conformance to this Recommendation | International Standard shall exhibit external
+behaviour consistent with having implemented an SPM for the kernel functional unit together with either or both of the
+half-duplex and the duplex functional units."
+
+In accordance to the above statement, sosi implements only the kernel, half duplex and duplex functional units. This means that
+the SPDUs supported and implemented by sosi are:
+
+* CN  - CONNECT
+* OA  - OVERFLOW ACCEPT 
+* CDO - CONNECT DATA OVERFLOW 
+* AC  - ACCEPT
+* RF  - REFUSE
+* FN  - FINISH
+* DN  - DISCONNECT
+* AB  - ABORT
+* AA  - ABORT ACCEPT
+* DT  - DATA TRANSFER
+* PR  - PREPARE
+* GT  - GIVE TOKENS
+* PT  - PLEASE TOKENS
+
 Author
 -------
 
