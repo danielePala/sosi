@@ -21,14 +21,14 @@ See the COPYING file.
 
 Conformance
 -------
-As stated in X.225 Section 9.1 (
+As stated in X.225 Section 9.1 (Static conformance requirements)
 
 "A system claiming conformance to this Recommendation | International Standard shall exhibit external
-behaviour consistent with having implemented an SPM for the kernel functional unit together with either or both of the
-half-duplex and the duplex functional units."
+behaviour consistent with having implemented an SPM for the kernel functional unit together with either 
+or both of the half-duplex and the duplex functional units."
 
-In accordance to the above statement, sosi implements only the kernel, half duplex and duplex functional units. This means that
-the SPDUs supported and implemented by sosi are:
+In accordance to the above statement, sosi implements only the kernel, half duplex and duplex functional
+units. This means that the SPDUs supported and implemented by sosi are:
 
 * CN  - CONNECT
 * OA  - OVERFLOW ACCEPT 
