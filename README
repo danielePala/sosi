@@ -1,0 +1,31 @@
+sosi
+======
+
+sosi provides an implementation of ISO/IEC 8326/8327, which are identical to ITU standards X.215 and X.225, defined at 
+
+ https://www.itu.int/rec/T-REC-X.215-199511-I
+
+and 
+
+ https://www.itu.int/rec/T-REC-X.225-199511-I.
+
+Documentation
+-------------
+
+...
+
+License
+-------
+
+See the COPYING file.
+
+Author
+-------
+
+Daniele Pala <pala.daniele@gmail.com>
+
+Known bugs/limitations
+-------
+
+WIP.
+
