@@ -50,10 +50,11 @@ type DialOpt struct {
 // than the structure represents a transport connection which has
 // been kept open for reuse.
 type SOSIConn struct {
+	Duplex         bool          // Is this a duplex connection?
 	Reused         bool          // Is this a connection kept for reuse?
 	MaxTSDUSizeOut uint16        // max TSDU size from initiator to responder
 	MaxTSDUSizeIn  uint16        // max TSDU size from responder to initiator
-	Token          int           //token status
+	Token          int           // token status
 	laddr, raddr   SOSIAddr      // local and remote address
 	vn             byte          // selected version number
 	tosiConn       tosi.TOSIConn // TOSI connection

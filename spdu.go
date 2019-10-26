@@ -58,50 +58,52 @@ const (
 	// AA-related defs
 	aaID = 0x1a // ID of an AA SPDU
 	// common defs for various SPDUs
-	ciCode         = 0x01  // Connection Identifier PGI code
-	calledURcode   = 0x09  // Called SS-user Reference PI code
-	crCode         = 0x0b  // Common Reference PI code
-	crMaxLen       = 64    // Common Reference max length
-	infoCode       = 0x0c  // Additional Reference Information PI code
-	infoMaxLen     = 4     // Additional Reference Information max length
-	itemCode       = 0x05  // Connect/Accept Item PGI code
-	poCode         = 0x13  // Protocol Options PI code
-	poLen          = 1     // Protocol Options length
-	poNormalConc   = 0     // don't use extended concatenated SPDUs
-	poExtendedConc = 1     // ability to receive extended concatenated SPDUs
-	tsizeCode      = 0x15  // TSDU Maximum Size PI code
-	tsizeLen       = 4     // TSDU Maximum Size length
-	vnCode         = 0x16  // Version Number PI code
-	vnLen          = 1     // Version Number length
-	vnOne          = 1     // Version Number 1
-	vnTwo          = 2     // Version Number 2
-	vnMax          = 3     // Version Number max value
-	tiCode         = 0x10  // Token Item PI code
-	isnCode        = 0x17  // Initial Serial Number PI code
-	tsiCode        = 0x1a  // Token Setting Item PI code
-	tsiLen         = 1     // Token Setting Item length
-	sisnCode       = 0x37  // Second Initial Serial Number PI code
-	ulsnCode       = 0x38  // Upper Limit Serial Number PI code
-	lisnCode       = 0x39  // Large Initial Serial Number PI code
-	lsisnCode      = 0x3a  // Large Second Initial Serial Number PI code
-	surCode        = 0x14  // Session User Requirements PI code
-	surValue       = 3     // half-duplex and duplex functional units
-	surLen         = 2     // Session User Requirements length
-	surMax         = 8191  // Session User Requirements max value
-	srcSSELCode    = 0x33  // Calling Session Selector PI code
-	dstSSELCode    = 0x34  // Called Session Selector PI code
-	sselMaxLen     = 16    // Session Selector max length
-	udCode         = 0xc1  // User Data PGI code
-	udMaxLen       = 512   // User Data max length
-	udMaxExt       = 10240 // Extended User Data max length
-	eiCode         = 0x19  // Enclosure Item PI code
-	eiMax          = 3     // Enclosure Item max value
-	smallUnit      = 254   // Max size of a 'small' unit
-	bigUnit        = 0xff  // Identifier of a 'big' unit
-	smallLen       = 2     // Header length of a 'small' unit
-	bigLen         = 4     // Header length of a 'big' unit
-	urMaxLen       = 64    // Calling or called SS-user Reference max length
-	tdisCode       = 0x11  // Transport Disconnect PI code
+	ciCode         = 0x01                // Connection Identifier PGI code
+	calledURcode   = 0x09                // Called SS-user Reference PI code
+	crCode         = 0x0b                // Common Reference PI code
+	crMaxLen       = 64                  // Common Reference max length
+	infoCode       = 0x0c                // Additional Reference Information PI code
+	infoMaxLen     = 4                   // Additional Reference Information max length
+	itemCode       = 0x05                // Connect/Accept Item PGI code
+	poCode         = 0x13                // Protocol Options PI code
+	poLen          = 1                   // Protocol Options length
+	poNormalConc   = 0                   // don't use extended concatenated SPDUs
+	poExtendedConc = 1                   // ability to receive extended concatenated SPDUs
+	tsizeCode      = 0x15                // TSDU Maximum Size PI code
+	tsizeLen       = 4                   // TSDU Maximum Size length
+	vnCode         = 0x16                // Version Number PI code
+	vnLen          = 1                   // Version Number length
+	vnOne          = 1                   // Version Number 1
+	vnTwo          = 2                   // Version Number 2
+	vnMax          = 3                   // Version Number max value
+	tiCode         = 0x10                // Token Item PI code
+	isnCode        = 0x17                // Initial Serial Number PI code
+	tsiCode        = 0x1a                // Token Setting Item PI code
+	tsiLen         = 1                   // Token Setting Item length
+	sisnCode       = 0x37                // Second Initial Serial Number PI code
+	ulsnCode       = 0x38                // Upper Limit Serial Number PI code
+	lisnCode       = 0x39                // Large Initial Serial Number PI code
+	lsisnCode      = 0x3a                // Large Second Initial Serial Number PI code
+	surCode        = 0x14                // Session User Requirements PI code
+	halfDuplex     = 1                   // half-duplex functional unit
+	duplex         = 2                   // duplex functional unit
+	surValue       = halfDuplex + duplex // half-duplex and duplex functional units
+	surLen         = 2                   // Session User Requirements length
+	surMax         = 8191                // Session User Requirements max value
+	srcSSELCode    = 0x33                // Calling Session Selector PI code
+	dstSSELCode    = 0x34                // Called Session Selector PI code
+	sselMaxLen     = 16                  // Session Selector max length
+	udCode         = 0xc1                // User Data PGI code
+	udMaxLen       = 512                 // User Data max length
+	udMaxExt       = 10240               // Extended User Data max length
+	eiCode         = 0x19                // Enclosure Item PI code
+	eiMax          = 3                   // Enclosure Item max value
+	smallUnit      = 254                 // Max size of a 'small' unit
+	bigUnit        = 0xff                // Identifier of a 'big' unit
+	smallLen       = 2                   // Header length of a 'small' unit
+	bigLen         = 4                   // Header length of a 'big' unit
+	urMaxLen       = 64                  // Calling or called SS-user Reference max length
+	tdisCode       = 0x11                // Transport Disconnect PI code
 )
 
 // variables associated with a CN request
@@ -723,5 +725,12 @@ func validateDT(spdu []byte) bool {
 }
 
 func createSessionConn(cv cnVars, av acVars) (sconn *SOSIConn) {
-	return &SOSIConn{}
+	var ret SOSIConn
+	// check if we are duplex of half-duplex
+	if av.sesUserReq[1] == duplex {
+		ret.Duplex = true
+	} else {
+		ret.Duplex = false
+	}
+	return &ret
 }
