@@ -197,7 +197,17 @@ func ac(cv acVars) []byte {
 	ci := makeConnID(cv.ConnID, calledURcode) // Connection Identifier PGI
 	item := makeConnAcc(cv.cnVars)            // Connect/Accept Item PGI
 	ti := unit(tiCode, []byte{cv.tokenItem})  // Token Item PI
-	sur := unit(surCode, cv.sesUserReq[:])    // Session User Requirements PI
+	// If both the half-duplex functional unit and the duplex functional
+	// unit were indicated in the CONNECT SPDU, then the ACCEPT SPDU shall
+	// propose which one is to be available.
+	// Whenever possible we try to use duplex.
+	var acSur [2]byte
+	if (cv.sesUserReq[1] & duplex) == duplex {
+		acSur[1] = duplex
+	} else {
+		acSur[1] = halfDuplex
+	}
+	sur := unit(surCode, acSur[:])    // Session User Requirements PI
 	ei := unit(eiCode, []byte{cv.enclItem})   // Enclosure Item PI
 	srcSSel := unit(srcSSELCode, cv.locSSEL)  // Calling Session Selector PI
 	dstSSel := unit(dstSSELCode, cv.remSSEL)  // Called Session Selector PI

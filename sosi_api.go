@@ -238,6 +238,15 @@ func sosiToTOSInet(sosi string) (tosi string) {
 	return
 }
 
+// Network returns the address's network name, "sosi".
+func (a *SOSIAddr) Network() string {
+	return "sosi"
+}
+
+func (a *SOSIAddr) String() string {
+        return a.TOSIAddr.String() + ":" + string(a.Ssel)
+}
+
 // ResolveSOSIAddr parses addr as a SOSI address of the form tosi:ssel and
 // resolves domain names to numeric addresses on the network snet,
 // which must be "sosi", "sosi4" or "sosi6".
