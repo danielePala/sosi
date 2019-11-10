@@ -58,52 +58,55 @@ const (
 	// AA-related defs
 	aaID = 0x1a // ID of an AA SPDU
 	// common defs for various SPDUs
-	ciCode         = 0x01                // Connection Identifier PGI code
-	calledURcode   = 0x09                // Called SS-user Reference PI code
-	crCode         = 0x0b                // Common Reference PI code
-	crMaxLen       = 64                  // Common Reference max length
-	infoCode       = 0x0c                // Additional Reference Information PI code
-	infoMaxLen     = 4                   // Additional Reference Information max length
-	itemCode       = 0x05                // Connect/Accept Item PGI code
-	poCode         = 0x13                // Protocol Options PI code
-	poLen          = 1                   // Protocol Options length
-	poNormalConc   = 0                   // don't use extended concatenated SPDUs
-	poExtendedConc = 1                   // ability to receive extended concatenated SPDUs
-	tsizeCode      = 0x15                // TSDU Maximum Size PI code
-	tsizeLen       = 4                   // TSDU Maximum Size length
-	vnCode         = 0x16                // Version Number PI code
-	vnLen          = 1                   // Version Number length
-	vnOne          = 1                   // Version Number 1
-	vnTwo          = 2                   // Version Number 2
-	vnMax          = 3                   // Version Number max value
-	tiCode         = 0x10                // Token Item PI code
-	isnCode        = 0x17                // Initial Serial Number PI code
-	tsiCode        = 0x1a                // Token Setting Item PI code
-	tsiLen         = 1                   // Token Setting Item length
-	sisnCode       = 0x37                // Second Initial Serial Number PI code
-	ulsnCode       = 0x38                // Upper Limit Serial Number PI code
-	lisnCode       = 0x39                // Large Initial Serial Number PI code
-	lsisnCode      = 0x3a                // Large Second Initial Serial Number PI code
-	surCode        = 0x14                // Session User Requirements PI code
-	halfDuplex     = 1                   // half-duplex functional unit
-	duplex         = 2                   // duplex functional unit
-	surValue       = halfDuplex + duplex // half-duplex and duplex functional units
-	surLen         = 2                   // Session User Requirements length
-	surMax         = 8191                // Session User Requirements max value
-	srcSSELCode    = 0x33                // Calling Session Selector PI code
-	dstSSELCode    = 0x34                // Called Session Selector PI code
-	sselMaxLen     = 16                  // Session Selector max length
-	udCode         = 0xc1                // User Data PGI code
-	udMaxLen       = 512                 // User Data max length
-	udMaxExt       = 10240               // Extended User Data max length
-	eiCode         = 0x19                // Enclosure Item PI code
-	eiMax          = 3                   // Enclosure Item max value
-	smallUnit      = 254                 // Max size of a 'small' unit
-	bigUnit        = 0xff                // Identifier of a 'big' unit
-	smallLen       = 2                   // Header length of a 'small' unit
-	bigLen         = 4                   // Header length of a 'big' unit
-	urMaxLen       = 64                  // Calling or called SS-user Reference max length
-	tdisCode       = 0x11                // Transport Disconnect PI code
+	ciCode              = 0x01                // Connection Identifier PGI code
+	calledURcode        = 0x09                // Called SS-user Reference PI code
+	crCode              = 0x0b                // Common Reference PI code
+	crMaxLen            = 64                  // Common Reference max length
+	infoCode            = 0x0c                // Additional Reference Information PI code
+	infoMaxLen          = 4                   // Additional Reference Information max length
+	itemCode            = 0x05                // Connect/Accept Item PGI code
+	poCode              = 0x13                // Protocol Options PI code
+	poLen               = 1                   // Protocol Options length
+	poNormalConc        = 0                   // don't use extended concatenated SPDUs
+	poExtendedConc      = 1                   // ability to receive extended concatenated SPDUs
+	tsizeCode           = 0x15                // TSDU Maximum Size PI code
+	tsizeLen            = 4                   // TSDU Maximum Size length
+	vnCode              = 0x16                // Version Number PI code
+	vnLen               = 1                   // Version Number length
+	vnOne               = 1                   // Version Number 1
+	vnTwo               = 2                   // Version Number 2
+	vnMax               = 3                   // Version Number max value
+	tiCode              = 0x10                // Token Item PI code
+	isnCode             = 0x17                // Initial Serial Number PI code
+	tsiCode             = 0x1a                // Token Setting Item PI code
+	tsiLen              = 1                   // Token Setting Item length
+	sisnCode            = 0x37                // Second Initial Serial Number PI code
+	ulsnCode            = 0x38                // Upper Limit Serial Number PI code
+	lisnCode            = 0x39                // Large Initial Serial Number PI code
+	lsisnCode           = 0x3a                // Large Second Initial Serial Number PI code
+	surCode             = 0x14                // Session User Requirements PI code
+	halfDuplex          = 1                   // half-duplex functional unit
+	duplex              = 2                   // duplex functional unit
+	surValue            = halfDuplex + duplex // half-duplex and duplex functional units
+	surLen              = 2                   // Session User Requirements length
+	surMax              = 8191                // Session User Requirements max value
+	srcSSELCode         = 0x33                // Calling Session Selector PI code
+	dstSSELCode         = 0x34                // Called Session Selector PI code
+	sselMaxLen          = 16                  // Session Selector max length
+	udCode              = 0xc1                // User Data PGI code
+	udMaxLen            = 512                 // User Data max length
+	udMaxExt            = 10240               // Extended User Data max length
+	eiCode              = 0x19                // Enclosure Item PI code
+	eiMax               = 2                   // Enclosure Item max value
+	eiMiddle       byte = 0                   // Enclosure Item indicating middle of SSDU
+	eiBegin        byte = 1                   // Enclosure Item indicating beginning of SSDU
+	eiEnd          byte = 2                   // Enclosure Item indicating end of SSDU
+	smallUnit           = 254                 // Max size of a 'small' unit
+	bigUnit             = 0xff                // Identifier of a 'big' unit
+	smallLen            = 2                   // Header length of a 'small' unit
+	bigLen              = 4                   // Header length of a 'big' unit
+	urMaxLen            = 64                  // Calling or called SS-user Reference max length
+	tdisCode            = 0x11                // Transport Disconnect PI code
 )
 
 // variables associated with a CN request
@@ -207,11 +210,11 @@ func ac(cv acVars) []byte {
 	} else {
 		acSur[1] = halfDuplex
 	}
-	sur := unit(surCode, acSur[:])    // Session User Requirements PI
-	ei := unit(eiCode, []byte{cv.enclItem})   // Enclosure Item PI
-	srcSSel := unit(srcSSELCode, cv.locSSEL)  // Calling Session Selector PI
-	dstSSel := unit(dstSSELCode, cv.remSSEL)  // Called Session Selector PI
-	ud := unit(udCode, cv.userData)           // User Data PGI
+	sur := unit(surCode, acSur[:])           // Session User Requirements PI
+	ei := unit(eiCode, []byte{cv.enclItem})  // Enclosure Item PI
+	srcSSel := unit(srcSSELCode, cv.locSSEL) // Calling Session Selector PI
+	dstSSel := unit(dstSSELCode, cv.remSSEL) // Called Session Selector PI
+	ud := unit(udCode, cv.userData)          // User Data PGI
 	// build complete SPDU
 	params := units(ci, item, ti, sur, ei, srcSSel, dstSSel, ud)
 	return spdu(params, acID)
@@ -231,6 +234,16 @@ func rf(v rfVars) []byte {
 }
 
 /* DT - Data Transfer */
+// The DATA TRANSFER SPDU contains:
+//   a) An Enclosure Item parameter to indicate the beginning and end of SSDU
+//      when segmenting has been selected. When segmenting has been selected,
+//      the Enclosure Item parameter is always present and indicates whether the
+//      SPDU is the beginning, middle or end of the SSDU. When segmenting has not
+//      been selected, the Enclosure Item parameter is not present.
+//   b) A User Information Field to transfer transparent user data whose maximum
+//      size is unlimited when segmenting has not been selected and whose maximum
+//      size is limited by the maximum TSDU size when segmenting has been
+//      selected.
 func dt(enclItem byte, userInfo []byte) []byte {
 	ei := unit(eiCode, []byte{enclItem}) // Enclosure Item PI
 	// build complete SPDU

@@ -244,7 +244,7 @@ func (a *SOSIAddr) Network() string {
 }
 
 func (a *SOSIAddr) String() string {
-        return a.TOSIAddr.String() + ":" + string(a.Ssel)
+	return a.TOSIAddr.String() + ":" + string(a.Ssel)
 }
 
 // ResolveSOSIAddr parses addr as a SOSI address of the form tosi:ssel and
@@ -347,6 +347,17 @@ func (c *SOSIConn) SetWriteDeadline(t time.Time) error {
 }
 
 // Write implements the net.Conn Write method.
+// Segmenting of SSDUs takes place under the following circumstances:
+//   a) when a maximum TSDU size has been selected, in which case a data SSDU
+//      or a typed data SSDU may be mapped onto more than one SPDU;
+//   b) when Protocol Version 2 is proposed or selected and either:
+//     1) the SPDU size would exceed the maximum TSDU size; or
+//     2) the SPDU size would exceed 65539 octets for an SPDU to be sent on the
+//        transport normal flow or 16 octets for an SPDU to be sent on the
+//        transport expedited flow, in which case SSDUs other than data SSDUs,
+//        typed data SSDUs and expedited data SSDUs are mapped onto more than
+//        one SPDU.
+// In all other cases, each SSDU is mapped one-to-one onto an SPDU.
 func (c *SOSIConn) Write(b []byte) (n int, err error) {
 	if b == nil {
 		return
@@ -360,26 +371,36 @@ func (c *SOSIConn) Write(b []byte) (n int, err error) {
 	}
 	// if b is too big, split it into smaller chunks
 	if bufLen > maxWrite {
+		encItem := eiBegin
 		numWrites := (bufLen / maxWrite)
 		if (bufLen % maxWrite) > 0 {
 			numWrites += 1
 		}
 		for i := 0; i < numWrites; i++ {
+			if i == (numWrites - 1) {
+				encItem = eiEnd
+			}
 			start := maxWrite * i
 			end := maxWrite * (i + 1)
 			if end > bufLen {
 				end = bufLen
 			}
-			part := append(gt(0, 0, nil), dt(3, b[start:end])...)
+			var part []byte
+			if c.Duplex == true {
+				part = dt(encItem, b[start:end])
+			} else {
+				part = append(gt(0, 0, nil), dt(encItem, b[start:end])...)
+			}
 			nPart, err := c.tosiConn.Write(part)
 			n = n + nPart
 			if err != nil {
 				return n, err
 			}
+			encItem = eiMiddle
 		}
 		return
 	}
-	return c.tosiConn.Write(append(gt(0, 0, nil), dt(3, b)...))
+	return c.tosiConn.Write(append(gt(0, 0, nil), dt(nil, b)...))
 }
 
 // ListenSOSI announces on the SOSI address loc and returns a SOSI listener.
