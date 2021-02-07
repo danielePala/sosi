@@ -113,7 +113,7 @@ const (
 type cnVars struct {
 	ConnID
 	connAcc
-	sesUserReq       [2]byte
+	sesUserReq       [2]byte // list of the proposed functional units
 	locSSEL, remSSEL []byte
 	userData         []byte
 	dataOverflow     bool
@@ -144,11 +144,24 @@ type ConnID struct {
 
 // Connect/Accept Item PGI
 type connAcc struct {
-	tokenSetting                    byte
-	maxTSDUSize                     [4]byte
-	initialSN, secondSN             []byte
+	// Proposes the initial token positions for each token available on this
+	// connection, as derived from the functional units proposed in the Session
+	// User Requirements parameter. The initial token positions can be
+	// specified to be on the initiator’s side or on the acceptor’s side or the
+	// initiator can specify that the decision is to be made by the server.
+	tokenSetting byte
+	// if present and not zero, indicates the initiator’s proposed values for
+	// the maximum TSDU sizes for each direction of transfer. If this parameter
+	// is not present or is zero, the TSDU size is not limited.
+	maxTSDUSize [4]byte
+	// these parameters are never proposed nor used by SOSI.
+	initialSN, secondSN []byte
+	// these parameters are never proposed nor used by SOSI.
 	upperLimSN, largeSN, largeSecSN []byte
-	protOpt, version                byte
+	// the Protocol Options parameter is never proposed nor used by SOSI.
+	// The Version Number parameter identifies all versions of the protocol
+	// which are supported and are suitable for the session connection.
+	protOpt, version byte
 }
 
 type ReadInfo struct {
@@ -244,8 +257,13 @@ func rf(v rfVars) []byte {
 //      size is unlimited when segmenting has not been selected and whose maximum
 //      size is limited by the maximum TSDU size when segmenting has been
 //      selected.
-func dt(enclItem byte, userInfo []byte) []byte {
-	ei := unit(eiCode, []byte{enclItem}) // Enclosure Item PI
+func dt(segmenting bool, enclItem byte, userInfo []byte) []byte {
+	var ei []byte
+	if segmenting == true {
+		ei = unit(eiCode, []byte{enclItem}) // Enclosure Item PI
+	} else {
+		ei = nil
+	}
 	// build complete SPDU
 	return append(spdu(ei, dtID), userInfo...)
 }

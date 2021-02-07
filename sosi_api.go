@@ -387,9 +387,9 @@ func (c *SOSIConn) Write(b []byte) (n int, err error) {
 			}
 			var part []byte
 			if c.Duplex == true {
-				part = dt(encItem, b[start:end])
+				part = dt(true, encItem, b[start:end])
 			} else {
-				part = append(gt(0, 0, nil), dt(encItem, b[start:end])...)
+				part = append(gt(0, 0, nil), dt(true, encItem, b[start:end])...)
 			}
 			nPart, err := c.tosiConn.Write(part)
 			n = n + nPart
@@ -400,7 +400,7 @@ func (c *SOSIConn) Write(b []byte) (n int, err error) {
 		}
 		return
 	}
-	return c.tosiConn.Write(append(gt(0, 0, nil), dt(nil, b)...))
+	return c.tosiConn.Write(append(gt(0, 0, nil), dt(false, eiBegin, b)...))
 }
 
 // ListenSOSI announces on the SOSI address loc and returns a SOSI listener.
@@ -448,7 +448,16 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 	var repCv acVars
 	valid, cv := validateCN(tsdu, addr.Ssel)
 	if valid {
-		repCv.sesUserReq[1] = surValue
+		if cv.sesUserReq[1]&duplex == duplex {
+			repCv.sesUserReq[1] = duplex
+		} else {
+			repCv.sesUserReq[1] = halfDuplex
+		}
+		if cv.version == vnOne {
+			repCv.version = vnOne
+		} else {
+			repCv.version = vnTwo
+		}
 		reply = ac(repCv) // reply with an AC
 	} else {
 		// reply with a REFUSE

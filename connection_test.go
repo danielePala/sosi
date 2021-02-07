@@ -21,18 +21,26 @@
 package sosi
 
 import (
+	"strconv"
 	"testing"
 	"time"
+)
+
+const (
+	// each test uses different ports for servers,
+	// in order to avoid possible conflicts.
+	connTest1Port = 8080
 )
 
 // Test 1
 // test connection establishment and closing. No error should occur.
 func TestConn(t *testing.T) {
 	// start a server
-	go sosiServer(t)
+	go sosiServer(t, connTest1Port)
 	// wait for server to come up
 	time.Sleep(time.Millisecond)
-	sosiAddr, err := ResolveSOSIAddr("sosi", "127.0.0.1::105:106")
+	remAddr := "127.0.0.1:" + strconv.Itoa(connTest1Port) + ":105:106"
+	sosiAddr, err := ResolveSOSIAddr("sosi", remAddr)
 	checkError(err, t)
 	// try to connect
 	conn, err := DialSOSI("sosi", nil, sosiAddr)
@@ -65,10 +73,11 @@ func TestConnNoTsel(t *testing.T) {
 }
 
 // a sosi server. No fault is expected.
-func sosiServer(t *testing.T) {
-	sosiAddr, err := ResolveSOSIAddr("sosi", "127.0.0.1::105:106")
+func sosiServer(t *testing.T, port int) {
+	locAddr := "127.0.0.1:" + strconv.Itoa(port) + ":105:106"
+	sosiAddr, err := ResolveSOSIAddr("sosi", locAddr)
 	checkError(err, t)
-	if sosiAddr.String() != "127.0.0.1:102:105:106" {
+	if sosiAddr.String() != locAddr {
 		t.Log(sosiAddr.String())
 		t.FailNow()
 	}
