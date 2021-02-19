@@ -457,6 +457,10 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 			repCv.version = vnOne
 		} else {
 			repCv.version = vnTwo
+			// The Enclosure Item parameter, if present, shall indicate that the
+			// SPDU is the beginning, but not end of the SSDU. This parameter
+			// shall not be present if Protocol Version 1 is selected.
+			repCv.enclItem = eiBegin
 		}
 		reply = ac(repCv) // reply with an AC
 	} else {

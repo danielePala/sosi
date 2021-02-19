@@ -223,8 +223,14 @@ func ac(cv acVars) []byte {
 	} else {
 		acSur[1] = halfDuplex
 	}
-	sur := unit(surCode, acSur[:])           // Session User Requirements PI
-	ei := unit(eiCode, []byte{cv.enclItem})  // Enclosure Item PI
+	sur := unit(surCode, acSur[:]) // Session User Requirements PI
+	// The Enclosure Item parameter, if present, shall indicate that the
+	// SPDU is the beginning, but not end of the SSDU. This parameter
+	// shall not be present if Protocol Version 1 is selected.
+	ei := []byte{}
+	if cv.version == vnTwo {
+		ei = unit(eiCode, []byte{cv.enclItem}) // Enclosure Item PI
+	}
 	srcSSel := unit(srcSSELCode, cv.locSSEL) // Calling Session Selector PI
 	dstSSel := unit(dstSSELCode, cv.remSSEL) // Called Session Selector PI
 	ud := unit(udCode, cv.userData)          // User Data PGI
