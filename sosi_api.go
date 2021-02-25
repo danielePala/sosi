@@ -144,6 +144,8 @@ func parseOptions(loc, rem *SOSIAddr, op DialOpt) (cv cnVars) {
 		cv.version += vnOne
 	} else if len(cv.userData) > udMaxExt {
 		cv.dataOverflow = true // Data Overflow
+		cv.ovfData = cv.userData[udMaxLen:]
+		cv.userData = cv.userData[:udMaxLen]
 	}
 	return
 }

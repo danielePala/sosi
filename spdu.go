@@ -117,6 +117,7 @@ type cnVars struct {
 	locSSEL, remSSEL []byte
 	userData         []byte
 	dataOverflow     bool
+	ovfData          []byte // user data to be sent in one or more CONNECT DATA OVERFLOW SPDUs
 }
 
 // variables associated with an AC response
@@ -348,7 +349,7 @@ func unit(code byte, value []byte) []byte {
 		buf := append([]byte{code}, byte(size))
 		return append(buf, value...)
 	} else {
-		buf := append([]byte{code}, bigUnit)
+		buf := append([]byte{code}, byte(bigUnit))
 		sizeBuf := new(bytes.Buffer)
 		binary.Write(sizeBuf, binary.BigEndian, int16(size))
 		buf = append(buf, sizeBuf.Bytes()...)
