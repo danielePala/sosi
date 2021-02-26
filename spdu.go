@@ -515,6 +515,13 @@ func validateCN(spdu []byte, locSSEL []byte) (valid bool, cv cnVars) {
 	}
 	// Data Overflow
 	valid, cv.dataOverflow = validateOverflow(spdu, cv.connAcc)
+	// User Data or Extended User Data
+	// try to read User Data
+	cv.userData = getParameterValue(spdu, udCode)
+	if cv.userData == nil {
+		// try to read Extended User Data
+		cv.userData = getParameterValue(spdu, cnEUDCode)
+	}
 	return true, cv
 }
 

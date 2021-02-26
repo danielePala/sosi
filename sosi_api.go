@@ -444,7 +444,7 @@ func (l *SOSIListener) Accept() (net.Conn, error) {
 	return nil, err
 }
 
-// parse a CN, handling errors and sending an AC in response.
+// parse a CN, handling errors and sending an AC (or OA) in response.
 func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 	var reply []byte
 	var repCv acVars
@@ -464,7 +464,11 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 			// shall not be present if Protocol Version 1 is selected.
 			repCv.enclItem = eiBegin
 		}
-		reply = ac(repCv) // reply with an AC
+		if cv.dataOverflow == false {
+			reply = ac(repCv) // reply with an AC
+		} else {
+			reply = oa(cv.maxTSDUSize, vnTwo) // reply with an OA
+		}
 	} else {
 		// reply with a REFUSE
 	}
