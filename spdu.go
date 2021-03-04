@@ -459,6 +459,11 @@ func isAC(incoming []byte) bool {
 	return isType(incoming, acID)
 }
 
+// determine if a packet is an OA
+func isOA(incoming []byte) bool {
+	return isType(incoming, oaID)
+}
+
 // determine if a packet is an RF
 func isRF(incoming []byte) bool {
 	return isType(incoming, rfID)

@@ -188,6 +188,21 @@ func dial(t *tosi.TOSIConn, loc, rem *SOSIAddr, cv cnVars) (*SOSIConn, error) {
 	}
 	if cv.dataOverflow {
 		// OVERFLOW ACCEPT SPDU
+		if isOA(tsdu) {
+			// process OA
+			c, err := handleOA(tsdu, t, cv)
+			if err != nil {
+				return c, err
+			}
+			if loc == nil {
+				var tosiAddr = t.LocalAddr().(*tosi.TOSIAddr)
+				c.laddr.TOSIAddr = *tosiAddr
+			} else {
+				c.laddr = *loc
+			}
+			c.raddr = *rem
+			return c, err
+		}
 	} else {
 		// ACCEPT SPDU
 		if isAC(tsdu) {
@@ -219,6 +234,25 @@ func handleAC(tsdu []byte, tconn *tosi.TOSIConn, cv cnVars) (*SOSIConn, error) {
 		tconn.Close()
 		return nil, errors.New("received an invalid AC")
 	}
+	// all ok, connection established
+	sconn := createSessionConn(cv, av)
+	sconn.tosiConn = *tconn
+	return sconn, nil
+}
+
+// parse an OA, handling errors
+func handleOA(tsdu []byte, tconn *tosi.TOSIConn, cv cnVars) (*SOSIConn, error) {
+	// we have an OA, check if it is valid
+	valid, av := validateOA(tsdu, cv)
+	if !valid {
+		// we got an invalid OA
+		// refuse the connection
+		tconn.Close()
+		return nil, errors.New("received an invalid OA")
+	}
+	// send CDOs with remaining user data
+	reply = cdo(repCv) // reply with a CDO
+
 	// all ok, connection established
 	sconn := createSessionConn(cv, av)
 	sconn.tosiConn = *tconn
