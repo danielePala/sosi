@@ -31,7 +31,6 @@ const (
 	// in order to avoid possible conflicts.
 	connTest1Port = 8080
 	connTest2Port = 8081
-	connTest3Port = 8082
 )
 
 // Test 1
@@ -68,32 +67,6 @@ func TestConnNoTsel(t *testing.T) {
 	}
 	// try to connect
 	conn, err := DialSOSI("sosi", nil, sosiAddr)
-	checkError(err, t)
-	// close connection
-	err = conn.Close()
-	checkError(err, t)
-}
-
-// Test 3
-// test initial data write with 12500 bytes. Just a random value
-// bigger than 10240, so that an OA should be sent in response.
-// No error should occur.
-func TestWrite12500bytesIn(t *testing.T) {
-	// start a server
-	go sosiServer(t, connTest3Port)
-	// wait for server to come up
-	time.Sleep(time.Millisecond)
-	remAddr := "127.0.0.1:" + strconv.Itoa(connTest3Port) + ":105:106"
-	sosiAddr, err := ResolveSOSIAddr("sosi", remAddr)
-	checkError(err, t)
-	// try to connect
-	opt := DialOpt{
-		ConnID:         ConnID{},
-		MaxTSDUSizeOut: 0,
-		MaxTSDUSizeIn:  0,
-		Data:           make([]byte, 12500),
-	}
-	conn, err := DialOptSOSI("sosi", nil, sosiAddr, opt)
 	checkError(err, t)
 	// close connection
 	err = conn.Close()

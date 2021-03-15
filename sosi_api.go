@@ -190,7 +190,7 @@ func dial(t *tosi.TOSIConn, loc, rem *SOSIAddr, cv cnVars) (*SOSIConn, error) {
 		// OVERFLOW ACCEPT SPDU
 		if isOA(tsdu) {
 			// process OA
-			c, err := handleOA(tsdu, t, cv)
+			c, err := handleOA(tsdu, t, loc, rem, cv)
 			if err != nil {
 				return c, err
 			}
@@ -241,9 +241,9 @@ func handleAC(tsdu []byte, tconn *tosi.TOSIConn, cv cnVars) (*SOSIConn, error) {
 }
 
 // parse an OA, handling errors
-func handleOA(tsdu []byte, tconn *tosi.TOSIConn, cv cnVars) (*SOSIConn, error) {
+func handleOA(tsdu []byte, tconn *tosi.TOSIConn, loc, rem *SOSIAddr, cv cnVars) (*SOSIConn, error) {
 	// we have an OA, check if it is valid
-	valid, av := validateOA(tsdu, cv)
+	valid := validateOA(tsdu, cv)
 	if !valid {
 		// we got an invalid OA
 		// refuse the connection
@@ -251,12 +251,42 @@ func handleOA(tsdu []byte, tconn *tosi.TOSIConn, cv cnVars) (*SOSIConn, error) {
 		return nil, errors.New("received an invalid OA")
 	}
 	// send CDOs with remaining user data
-	reply = cdo(repCv) // reply with a CDO
-
-	// all ok, connection established
-	sconn := createSessionConn(cv, av)
-	sconn.tosiConn = *tconn
-	return sconn, nil
+	for cv.ovfData != nil {
+		cdoData := cv.ovfData
+		if len(cdoData) > udMaxLenCdo {
+			cdoData = cv.ovfData[:udMaxLenCdo]
+			cv.ovfData = cv.ovfData[udMaxLenCdo:]
+		} else {
+			cv.ovfData = nil
+		}
+		reply := cdo(0x00, cdoData)  // reply with a CDO
+		_, err := tconn.Write(reply) // send the CDO
+		if err != nil {
+			return nil, err
+		}
+	}
+	// try to read a TSDU in response
+	tsdu, _, err := tconn.ReadTSDU()
+	if err != nil {
+		return nil, err
+	}
+	// ACCEPT SPDU
+	if isAC(tsdu) {
+		// process AC
+		c, err := handleAC(tsdu, tconn, cv)
+		if err != nil {
+			return c, err
+		}
+		if loc == nil {
+			var tosiAddr = tconn.LocalAddr().(*tosi.TOSIAddr)
+			c.laddr.TOSIAddr = *tosiAddr
+		} else {
+			c.laddr = *loc
+		}
+		c.raddr = *rem
+		return c, err
+	}
+	return nil, err
 }
 
 // convert a SOSI net to a TOSI net.
@@ -457,31 +487,42 @@ func ListenSOSI(snet string, loc *SOSIAddr) (*SOSIListener, error) {
 // Accept implements the Accept method in the net.Listener interface;
 // it waits for the next call and returns a generic net.Conn.
 func (l *SOSIListener) Accept() (net.Conn, error) {
+	sosi, _, err := l.AcceptSOSI()
+	return sosi, err
+}
+
+// AcceptSOSI is the same as Accept, but it also returns initial data sent by
+// the caller during connection establishment. In fact, ISO/IEC 8326/8327
+// allows the caller to send user data during connection establishment.
+func (l *SOSIListener) AcceptSOSI() (net.Conn, []byte, error) {
 	// listen for TOSI connections
 	tconn, err := l.tosiListener.AcceptTOSI(nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// try to read a CN
 	tsdu, _, err := tconn.ReadTSDU()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if isCN(tsdu) {
-		sosi, err := cnReply(*l.addr, tsdu, *tconn)
-		return &sosi, err
+		sosi, data, err := cnReply(*l.addr, tsdu, *tconn)
+		return &sosi, data, err
 	}
 	tconn.Close()
 	if err == nil {
 		err = errors.New("received an invalid TSDU")
 	}
-	return nil, err
+	return nil, nil, err
 }
 
 // parse a CN, handling errors and sending an AC (or OA) in response.
-func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
+// The function also returns the initial data sent by the caller during
+// connection establishment, if present (nil otherwise).
+func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, []byte, error) {
 	var reply []byte
 	var repCv acVars
+	var data []byte
 	valid, cv := validateCN(tsdu, addr.Ssel)
 	if valid {
 		if cv.sesUserReq[1]&duplex == duplex {
@@ -500,8 +541,10 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 		}
 		if cv.dataOverflow == false {
 			reply = ac(repCv) // reply with an AC
+			data = cv.userData
 		} else {
 			reply = oa(cv.maxTSDUSize, vnTwo) // reply with an OA
+			data = cv.userData                // TODO: must handle subsequent data
 		}
 	} else {
 		// reply with a REFUSE
@@ -514,13 +557,13 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, error) {
 		return SOSIConn{
 			MaxTSDUSizeIn: MaxTSDUSizeIn,
 			tosiConn:      t,
-			laddr:         addr}, nil
+			laddr:         addr}, data, nil
 	}
 	t.Close()
 	if err == nil {
 		err = errors.New("received an invalid CN")
 	}
-	return SOSIConn{}, err
+	return SOSIConn{}, nil, err
 }
 
 // Addr returns the listener's network address.

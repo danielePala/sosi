@@ -57,6 +57,9 @@ const (
 	rpvCode = 0x31 // Reflect Parameter Values PI code
 	// AA-related defs
 	aaID = 0x1a // ID of an AA SPDU
+	// CDO-related defs
+	cdoID       = 0x0f  // ID of a CDO SPDU
+	udMaxLenCdo = 65528 // CDO User Data max length
 	// common defs for various SPDUs
 	ciCode              = 0x01                // Connection Identifier PGI code
 	calledURcode        = 0x09                // Called SS-user Reference PI code
@@ -309,6 +312,15 @@ func ab(tdis, enclItem byte, rParamVals, userData []byte) []byte {
 /* AB - Abort Accept */
 func aa() []byte {
 	return spdu(nil, aaID)
+}
+
+/* CDO - Connect Data Overflow */
+func cdo(enclItem byte, userData []byte) []byte {
+	ei := unit(eiCode, []byte{enclItem}) // Enclosure Item PI
+	ud := unit(udCode, userData)         // User Data PGI
+	// build complete SPDU
+	params := units(ei, ud)
+	return spdu(params, cdoID)
 }
 
 // construct a Connection Identifier PGI
@@ -619,6 +631,10 @@ func validateRF(spdu []byte, vn byte) (valid bool, rv rfVars) {
 		}
 	}
 	return true, rv
+}
+
+func validateOA(spdu []byte, cv cnVars) (valid bool) {
+	return true
 }
 
 // validate a Connection Identifier PGI
