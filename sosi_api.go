@@ -545,6 +545,20 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, []byte, err
 		} else {
 			reply = oa(cv.maxTSDUSize, vnTwo) // reply with an OA
 			data = cv.userData                // TODO: must handle subsequent data
+			// try to read a CDO
+			tsdu, _, err := t.ReadTSDU()
+			if err != nil {
+				return SOSIConn{}, nil, err
+			}
+			if isCDO(tsdu) {
+				valid, last, cdoData := validateCDO(tsdu)
+				if valid == false {
+					// handle this
+				}
+				if last == true {
+					data = append(data, cdoData...)
+				}
+			}
 		}
 	} else {
 		// reply with a REFUSE

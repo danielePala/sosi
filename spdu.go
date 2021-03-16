@@ -104,6 +104,7 @@ const (
 	eiMiddle       byte = 0                   // Enclosure Item indicating middle of SSDU
 	eiBegin        byte = 1                   // Enclosure Item indicating beginning of SSDU
 	eiEnd          byte = 2                   // Enclosure Item indicating end of SSDU
+	eiLen               = 1                   // Enclosure Item length
 	smallUnit           = 254                 // Max size of a 'small' unit
 	bigUnit             = 0xff                // Identifier of a 'big' unit
 	smallLen            = 2                   // Header length of a 'small' unit
@@ -476,6 +477,11 @@ func isOA(incoming []byte) bool {
 	return isType(incoming, oaID)
 }
 
+// determine if a packet is a CDO
+func isCDO(incoming []byte) bool {
+	return isType(incoming, cdoID)
+}
+
 // determine if a packet is an RF
 func isRF(incoming []byte) bool {
 	return isType(incoming, rfID)
@@ -634,7 +640,35 @@ func validateRF(spdu []byte, vn byte) (valid bool, rv rfVars) {
 }
 
 func validateOA(spdu []byte, cv cnVars) (valid bool) {
+	if !isValid(spdu) {
+		return false
+	}
 	return true
+}
+
+func validateCDO(spdu []byte) (valid, last bool, data []byte) {
+	if !isValid(spdu) {
+		return false, false, nil
+	}
+	encItem := getParameterValue(spdu, eiCode)
+	if len(encItem) != eiLen {
+		return false, false, nil
+	}
+	if encItem[0] == eiEnd {
+		last = true
+	} else {
+		if encItem[0] == eiMiddle {
+			last = false
+		} else {
+			return false, false, nil
+		}
+	}
+	data = getParameterValue(spdu, udCode)
+	// The User Data field shall be present if the Enclosure Item has bit 2 = 0
+	if last == false && data == nil {
+		return false, false, nil
+	}
+	return true, last, data
 }
 
 // validate a Connection Identifier PGI
