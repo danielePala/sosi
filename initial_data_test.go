@@ -1,6 +1,7 @@
 package sosi
 
 import (
+	"runtime/debug"
 	"strconv"
 	"testing"
 	"time"
@@ -23,7 +24,7 @@ func TestWrite12500bytesIn(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	remAddr := "127.0.0.1:" + strconv.Itoa(initTest1Port) + ":105:106"
 	sosiAddr, err := ResolveSOSIAddr("sosi", remAddr)
-	checkError(err, t)
+	checkErrorIn(err, t)
 	// try to connect
 	opt := DialOpt{
 		ConnID:         ConnID{},
@@ -42,31 +43,32 @@ func TestWrite12500bytesIn(t *testing.T) {
 func sosiServerRead12500bytesIn(t *testing.T, port int) {
 	locAddr := "127.0.0.1:" + strconv.Itoa(port) + ":105:106"
 	sosiAddr, err := ResolveSOSIAddr("sosi", locAddr)
-	checkError(err, t)
+	checkErrorIn(err, t)
 	if sosiAddr.String() != locAddr {
 		t.Log(sosiAddr.String())
 		t.FailNow()
 	}
 	listener, err := ListenSOSI(sosiAddr.Network(), sosiAddr)
-	checkError(err, t)
+	checkErrorIn(err, t)
 	// listen for connections
 	conn, data, err := listener.AcceptSOSI()
-	checkError(err, t)
+	checkErrorIn(err, t)
 	if len(data) != 12500 {
-		t.Log("Wrong data size")
+		t.Log("Wrong data size: ", len(data))
 		t.FailNow()
 	}
 	// close connection
 	err = conn.Close()
-	checkError(err, t)
+	checkErrorIn(err, t)
 	err = listener.Close()
-	checkError(err, t)
+	checkErrorIn(err, t)
 }
 
 // check for unexpected errors
 func checkErrorIn(err error, t *testing.T) {
 	if err != nil {
 		t.Log(err.Error())
+		t.Log(string(debug.Stack()))
 		t.FailNow()
 	}
 }

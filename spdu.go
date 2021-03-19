@@ -201,7 +201,7 @@ func cn(cv cnVars) []byte {
 	}
 	// build complete SPDU
 	params := units(ci, item, sur, srcSSEL, dstSSEL, do, ud)
-	return spdu(params, cnID)
+	return unit(cnID, params)
 }
 
 /* OA - Overflow Accept */
@@ -210,7 +210,7 @@ func oa(MaxTSDUSize [4]byte, version byte) []byte {
 	vn := unit(vnCode, []byte{version})
 	// build complete SPDU
 	params := units(tsdu, vn)
-	return spdu(params, oaID)
+	return unit(oaID, params)
 }
 
 /* AC - Accept */
@@ -241,7 +241,7 @@ func ac(cv acVars) []byte {
 	ud := unit(udCode, cv.userData)          // User Data PGI
 	// build complete SPDU
 	params := units(ci, item, ti, sur, ei, srcSSel, dstSSel, ud)
-	return spdu(params, acID)
+	return unit(acID, params)
 }
 
 /* RF - Refuse */
@@ -254,7 +254,7 @@ func rf(v rfVars) []byte {
 	rc := unit(reasonCode, v.reasonCode)     // Reason Code PI
 	// build complete SPDU
 	params := units(ci, td, sur, vn, ei, rc)
-	return spdu(params, rfID)
+	return unit(rfID, params)
 }
 
 /* DT - Data Transfer */
@@ -276,7 +276,7 @@ func dt(segmenting bool, enclItem byte, userInfo []byte) []byte {
 		ei = nil
 	}
 	// build complete SPDU
-	return append(spdu(ei, dtID), userInfo...)
+	return append(unit(dtID, ei), userInfo...)
 }
 
 /* GT - Give Tokens */
@@ -286,7 +286,7 @@ func gt(tokenItem, enclItem byte, userData []byte) []byte {
 	ud := unit(udCode, userData)          // User Data PGI
 	// build complete SPDU
 	params := units(ti, ei, ud)
-	return spdu(params, gtID)
+	return unit(gtID, params)
 }
 
 /* PT - Give Tokens */
@@ -296,7 +296,7 @@ func pt(tokenItem, enclItem byte, userData []byte) []byte {
 	ud := unit(udCode, userData)          // User Data PGI
 	// build complete SPDU
 	params := units(ti, ei, ud)
-	return spdu(params, ptID)
+	return unit(ptID, params)
 }
 
 /* AB - Abort */
@@ -307,12 +307,12 @@ func ab(tdis, enclItem byte, rParamVals, userData []byte) []byte {
 	ud := unit(udCode, userData)         // User Data PGI
 	// build complete SPDU
 	params := units(td, ei, rpv, ud)
-	return spdu(params, abID)
+	return unit(abID, params)
 }
 
 /* AB - Abort Accept */
 func aa() []byte {
-	return spdu(nil, aaID)
+	return unit(aaID, nil)
 }
 
 /* CDO - Connect Data Overflow */
@@ -321,7 +321,7 @@ func cdo(enclItem byte, userData []byte) []byte {
 	ud := unit(udCode, userData)         // User Data PGI
 	// build complete SPDU
 	params := units(ei, ud)
-	return spdu(params, cdoID)
+	return unit(cdoID, params)
 }
 
 // construct a Connection Identifier PGI
@@ -442,7 +442,7 @@ func paramLen(buf []byte) int {
 		return int(buf[1])
 	}
 	var lenInd uint16
-	lenBuf := bytes.NewBuffer(buf[2:3])
+	lenBuf := bytes.NewBuffer(buf[2:4])
 	binary.Read(lenBuf, binary.BigEndian, &lenInd)
 	return int(lenInd)
 }
@@ -453,13 +453,6 @@ func units(bufs ...[]byte) (result []byte) {
 		result = append(result, buf...)
 	}
 	return result
-}
-
-// build a complete SPDU
-func spdu(params []byte, SI byte) []byte {
-	LI := byte(len(params))
-	buf := append([]byte{LI}, params...)
-	return append([]byte{SI}, buf...)
 }
 
 // determine if a packet is a CN

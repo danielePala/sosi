@@ -142,10 +142,12 @@ func parseOptions(loc, rem *SOSIAddr, op DialOpt) (cv cnVars) {
 	cv.userData = op.Data // User Data / Extended User Data
 	if len(cv.userData) <= udMaxLen {
 		cv.version += vnOne
-	} else if len(cv.userData) > udMaxExt {
-		cv.dataOverflow = true // Data Overflow
-		cv.ovfData = cv.userData[udMaxLen:]
-		cv.userData = cv.userData[:udMaxLen]
+	} else {
+		if len(cv.userData) > udMaxExt {
+			cv.dataOverflow = true // Data Overflow
+			cv.ovfData = cv.userData[udMaxExt:]
+			cv.userData = cv.userData[:udMaxExt]
+		}
 	}
 	return
 }
@@ -253,14 +255,16 @@ func handleOA(tsdu []byte, tconn *tosi.TOSIConn, loc, rem *SOSIAddr, cv cnVars) 
 	// send CDOs with remaining user data
 	for cv.ovfData != nil {
 		cdoData := cv.ovfData
+		encItem := eiMiddle
 		if len(cdoData) > udMaxLenCdo {
 			cdoData = cv.ovfData[:udMaxLenCdo]
 			cv.ovfData = cv.ovfData[udMaxLenCdo:]
 		} else {
 			cv.ovfData = nil
+			encItem = eiEnd
 		}
-		reply := cdo(0x00, cdoData)  // reply with a CDO
-		_, err := tconn.Write(reply) // send the CDO
+		reply := cdo(encItem, cdoData) // reply with a CDO
+		_, err := tconn.Write(reply)   // send the CDO
 		if err != nil {
 			return nil, err
 		}
@@ -544,21 +548,30 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, []byte, err
 			data = cv.userData
 		} else {
 			reply = oa(cv.maxTSDUSize, vnTwo) // reply with an OA
-			data = cv.userData                // TODO: must handle subsequent data
-			// try to read a CDO
-			tsdu, _, err := t.ReadTSDU()
-			if err != nil {
-				return SOSIConn{}, nil, err
-			}
-			if isCDO(tsdu) {
-				valid, last, cdoData := validateCDO(tsdu)
-				if valid == false {
-					// handle this
+			t.Write(reply)                    // TODO: this can fail
+			data = cv.userData
+			last := false
+			for last == false {
+				// try to read a CDO
+				tsdu, _, err := t.ReadTSDU()
+				if err != nil {
+					return SOSIConn{}, nil, err
 				}
-				if last == true {
-					data = append(data, cdoData...)
+				if isCDO(tsdu) {
+					valid, end, cdoData := validateCDO(tsdu)
+					last = end
+					if valid == false {
+						// handle this
+						return SOSIConn{}, nil, err
+					}
+					if last == true {
+						data = append(data, cdoData...)
+					}
+				} else {
+					return SOSIConn{}, nil, err
 				}
 			}
+			reply = ac(repCv) // reply with an AC
 		}
 	} else {
 		// reply with a REFUSE
