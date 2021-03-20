@@ -765,11 +765,22 @@ func validateSUR(spdu []byte) (ok bool, sur [2]byte) {
 }
 
 func validateOverflow(spdu []byte, ca connAcc) (ok, overflow bool) {
-	/*dataOverflow := getParameter(spdu, cnDOcode)
-	if (len(dataOverflow) > cnDOLen) || ((dataOverflow == cnDOLen) && (cv.connAcc.version < vnTwo)) {
-		return false, cv
-	}*/
-	return true, true
+	dataOverflow := getParameter(spdu, cnDOCode)
+	if dataOverflow == nil {
+		return true, false
+	}
+	if dataOverflow[0] == 0 {
+		overflow = false
+	} else {
+		overflow = true
+	}
+	if len(dataOverflow) > cnDOLen {
+		return false, overflow
+	}
+	if overflow == true && ca.version < vnTwo {
+		return false, overflow
+	}
+	return true, overflow
 }
 
 func getData(tsdu []byte) (dt []byte) {
