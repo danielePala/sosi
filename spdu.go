@@ -529,14 +529,17 @@ func validateCN(spdu []byte, locSSEL []byte) (valid bool, cv cnVars) {
 	if !bytes.Equal(cv.remSSEL, locSSEL) {
 		return false, cv
 	}
-	// Data Overflow
-	valid, cv.dataOverflow = validateOverflow(spdu, cv.connAcc)
 	// User Data or Extended User Data
 	// try to read User Data
 	cv.userData = getParameterValue(spdu, udCode)
 	if cv.userData == nil {
 		// try to read Extended User Data
 		cv.userData = getParameterValue(spdu, cnEUDCode)
+	}
+	// Data Overflow
+	valid, cv.dataOverflow = validateOverflow(spdu, cv)
+	if !valid {
+		return false, cv
 	}
 	return true, cv
 }
@@ -764,8 +767,14 @@ func validateSUR(spdu []byte) (ok bool, sur [2]byte) {
 	return true, sur
 }
 
-func validateOverflow(spdu []byte, ca connAcc) (ok, overflow bool) {
-	dataOverflow := getParameter(spdu, cnDOCode)
+// The Data Overflow parameter shall be present if and only if there is more
+// than 10240 octets of SS-user data and indicates to the responder that there
+// is more SS-user data to follow. The first 10 240 octets of SS-user data are
+// sent in the Extended User Data parameter. This parameter shall not be
+// present if Protocol Version 1 is proposed.
+func validateOverflow(spdu []byte, cn cnVars) (ok, overflow bool) {
+	ca := cn.connAcc
+	dataOverflow := getParameterValue(spdu, cnDOCode)
 	if dataOverflow == nil {
 		return true, false
 	}
@@ -773,6 +782,9 @@ func validateOverflow(spdu []byte, ca connAcc) (ok, overflow bool) {
 		overflow = false
 	} else {
 		overflow = true
+	}
+	if len(cn.userData) < udMaxExt {
+		return false, overflow
 	}
 	if len(dataOverflow) > cnDOLen {
 		return false, overflow
