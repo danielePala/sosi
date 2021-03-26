@@ -11,6 +11,7 @@ const (
 	// in order to avoid possible conflicts.
 	initTest1Port = 8082
 	initTest2Port = 8083
+	initTest3Port = 8084
 )
 
 // Test 1
@@ -27,6 +28,14 @@ func TestWrite12500bytesIn(t *testing.T) {
 // No error should occur.
 func TestWrite125bytesIn(t *testing.T) {
 	writeNbytesIn(t, 125, initTest2Port)
+}
+
+// Test 3
+// test initial data write with 125000 bytes. Just a random value
+// big enough so that more than one OA should be sent in response.
+// No error should occur.
+func TestWrite125000bytesIn(t *testing.T) {
+	writeNbytesIn(t, 125000, initTest3Port)
 }
 
 func writeNbytesIn(t *testing.T, size, port int) {

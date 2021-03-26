@@ -564,9 +564,7 @@ func cnReply(addr SOSIAddr, tsdu []byte, t tosi.TOSIConn) (SOSIConn, []byte, err
 						// handle this
 						return SOSIConn{}, nil, err
 					}
-					if last == true {
-						data = append(data, cdoData...)
-					}
+					data = append(data, cdoData...)
 				} else {
 					return SOSIConn{}, nil, err
 				}
